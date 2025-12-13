@@ -1,0 +1,148 @@
+$(document).ready(function() {
+
+    // Check Admin Password is correct or not
+    $('#current_password').keyup(function() {
+        var current_password = $('#current_password').val();
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/verify-password',
+            data: {
+                current_password: current_password
+            },
+            success: function(response) {
+                if (response== false) {
+                    $('#verifyPassword').html('<font color="red">Current Password is incorrect</font>');
+                } else {
+                    $('#verifyPassword').html('<font color="green">Current Password is correct</font>');
+                }
+            },
+
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
+    // Delete Admin Profile Image
+    $(document).on('click', '#deleteProfileImage', function() {
+        if(confirm('Are you sure you want to delete your profile image?')) {
+            var admin_id = $(this).data('admin-id');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                url: 'delete-profile-image',
+                data: { admin_id: admin_id },
+                success: function(response) {
+                    if(response == true) {
+                        alert(response['message']);
+                        $('#profileImageBlock').remove();
+                    }
+                },
+                error: function() {
+                    alert('Something went wrong');
+                }
+            });
+        }
+    });
+
+    // Update Subadmin Status
+    $(document).on('click', '.updateSubadminStatus', function() {
+        var status = $(this).children('i').data('status');
+        var subadmin_id = $(this).data('subadmin_id');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-subadmin-status',
+            data: { status: status, subadmin_id: subadmin_id },
+            success: function(response) {
+                if(response['status'] == 0) {
+                    $("a[data-subadmin_id='" + subadmin_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                } else if(response['status'] == 1) {
+                    $("a[data-subadmin_id='" + subadmin_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                }
+            },
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
+    // Update Category Status
+    $(document).on('click', '.updateCategoryStatus', function() {
+        var status = $(this).find('i').data('status');
+        var category_id = $(this).data('category_id');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-category-status',
+            data: { status: status, category_id: category_id },
+            success: function(response) {
+                if(response['status'] == 0) {
+                    $("a[data-category_id='" + category_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                } else if(response['status'] == 1) {
+                    $("a[data-category_id='" + category_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                }
+            },
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
+    // Delete Category Image
+    $(document).on('click', '#deleteCategoryImage', function() {
+        if(confirm('Are you sure you want to delete this category image?')) {
+            var category_id = $(this).data('category_id');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                url: '/admin/delete-category-image',
+                data: { category_id: category_id },
+                success: function(response) {
+                    if(response['status'] == true) {
+                        alert(response['message']);
+                        $('#categoryImageBlock').remove();
+                    }
+                },
+                error: function() {
+                    alert.html('<font color="red">Something went wrong while deleting category image</font>');
+                }
+            });
+        }
+    });
+
+    // Delete Size Chart Image
+    $(document).on('click', '#deleteSizeChartImage', function() {
+        if(confirm('Are you sure you want to delete this size chart image?')) {
+            var category_id = $(this).data('category_id');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                url: '/admin/delete-sizechart-image',
+                data: { category_id: category_id },
+                success: function(response) {
+                    if(response['status'] == true) {
+                        alert(response['message']);
+                        $('#sizeChartImageBlock').remove();
+                    }
+                },
+                error: function() {
+                    alert.html('<font color="red">Something went wrong while deleting size chart image</font>');
+                }
+            });
+        }
+    });
+});
