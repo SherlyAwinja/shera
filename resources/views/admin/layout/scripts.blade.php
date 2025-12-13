@@ -208,3 +208,6 @@ href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
         $('#subadmins').DataTable();
     });
 </script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

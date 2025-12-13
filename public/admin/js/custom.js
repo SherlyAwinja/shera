@@ -145,4 +145,39 @@ $(document).ready(function() {
             });
         }
     });
+
+    // Confirm Delete
+    /* $(".confirmDelete").click(function() {
+        var name = $(this).attr('name');
+        if(confirm('Are you sure you want to delete this ' + name + '?')) {
+            return true;
+        }
+        return false;
+    }); */
+
+    $(document).on('click', '.confirmDelete', function(e) {
+        e.preventDefault();
+        let button = $(this);
+        let module = button.data('module');
+        let moduleid = button.data('id');
+        let form = button.closest('form');
+        let redirectUrl = "/admin/delete-" + module + "/" + moduleid;
+        swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!',
+        }).then((result) => {
+            if(result.isConfirmed) {
+                if (form.length) {
+                    form.submit(); // Submit form (used in category module)
+                } else {
+                    window.location.href = redirectUrl; // Redirect for subadmin delete
+                }
+            }
+        });
+    });
 });

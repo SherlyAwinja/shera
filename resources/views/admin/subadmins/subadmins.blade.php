@@ -66,7 +66,7 @@
                                                 &nbsp;&nbsp;
                                                 <a title="Set Permissions for Sub-admin" href="{{ url('admin/update-role/'.$subadmin->id) }}"><i class="fas fa-unlock"></i></a>
                                                 &nbsp;&nbsp;
-                                                <a style="color:#3f6ed3" title="Delete Subadmin" href="{{ url('admin/delete-subadmin') }}/{{ $subadmin->id }}"><i class="fas fa-trash"></i></a>
+                                                <a class="confirmDelete" name="Subadmin" style="color:#3f6ed3" title="Delete Subadmin" data-module="subadmin" data-id="{{ $subadmin->id }}" <?php /* href="{{ url('admin/delete-subadmin/') }}/{{ $subadmin->id }}" */?>><i class="fas fa-trash"></i></a>
                                             </td>
                                         </tr>
                                     @endforeach
