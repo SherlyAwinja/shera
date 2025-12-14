@@ -206,8 +206,83 @@ href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     $(document).ready(function() {
         $('#categories').DataTable();
         $('#subadmins').DataTable();
+        $('#products').DataTable();
     });
 </script>
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Dropzone CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0/min/dropzone.min.css" rel="stylesheet">
+
+<!-- Dropzone JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0/min/dropzone.min.js"></script>
+
+<script>
+  Dropzone.autoDiscover = false;
+
+  $(document).ready(function() {
+    // Main Image Dropzone
+    if ($("#mainImageDropzone").length) {
+      let mainImageDropzone = new Dropzone("#mainImageDropzone", {
+        url: "{{ route('product.upload.image') }}",
+        maxFiles: 1,
+        maxFilesize: 0.5, // 0.5MB
+        acceptedFiles: "image/*",
+        addRemoveLinks: true,
+        dictDefaultMessage: "Drag & drop product image here or click to upload.",
+        headers: {
+          'X-CSRF-TOKEN': "{{ csrf_token() }}",
+        },
+        success: function(file, response) {
+          if (response.fileName) {
+            document.getElementById('main_image_hidden').value = response.fileName;
+          }
+        },
+        error: function(file, message) {
+          if (typeof message === 'string') {
+            alert(message);
+          } else if (message && message.message) {
+            alert(message.message);
+          } else {
+            alert('Error uploading image');
+          }
+          this.removeFile(file);
+        },
+        init: function() {
+          this.on("maxfilesexceeded", function(file) {
+            this.removeAllFiles();
+            this.addFile(file);
+          });
+        }
+      });
+    }
+
+    // Product Video Dropzone
+    let productVideoDropzone = new Dropzone("#productVideoDropzone", {
+      url: "{{ route('product.upload.video') }}",
+      maxFiles: 1,
+      maxFilesize: 2, // 2MB
+      acceptedFiles: "video/*",
+      addRemoveLinks: true,
+      dictDefaultMessage: "Drag & drop product video here or click to upload.",
+      headers: {
+        'X-CSRF-TOKEN': "{{ csrf_token() }}",
+      },
+      success: function(file, response) {
+        document.getElementById('product_video_hidden').value = response.fileName;
+      },
+      error: function(file, message) {
+        alert(message);
+        this.removeFile(file);
+      },
+      init: function() {
+        this.on("maxfilesexceeded", function(file) {
+          this.removeAllFiles();
+          this.addFile(file);
+        });
+      }
+    });
+  )}
+</script>

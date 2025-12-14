@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ProductController;
+
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -55,6 +58,19 @@ Route::prefix('admin')->group(function () {
         Route::post('delete-category-image', [CategoryController::class, 'deleteCategoryImage']);
         // Delete Size Chart Image Route
         Route::post('delete-sizechart-image', [CategoryController::class, 'deleteSizeChartImage']);
+
+        // Products Route
+        Route::resource('products', ProductController::class);
+        // Update Product Status Route
+        Route::post('update-product-status', [ProductController::class, 'updateProductStatus']);
+        // Upload Product Image Route
+        Route::post('/product/upload-image', [ProductController::class, 'uploadImage'])->name('product.upload.image');
+        // Upload Product Video Route
+        Route::post('/product/upload-video', [ProductController::class, 'uploadVideo'])->name('product.upload.video');
+        // Delete Product Image Route
+        Route::get('delete-product-main-image/{id}', [ProductController::class, 'deleteProductMainImage']);
+        // Delete Product Video Route
+        Route::get('delete-product-video/{id}', [ProductController::class, 'deleteProductVideo']);
 
         // Logout Route
         Route::get('logout', [AdminController::class, 'destroy'])->name('admin.logout');

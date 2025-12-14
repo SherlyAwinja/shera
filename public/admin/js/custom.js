@@ -98,6 +98,30 @@ $(document).ready(function() {
         });
     });
 
+    // Update Product Status
+    $(document).on('click', '.updateProductStatus', function() {
+        var status = $(this).find('i').data('status');
+        var product_id = $(this).data('product_id');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-product-status',
+            data: { status: status, product_id: product_id },
+            success: function(response) {
+                if(response['status'] == 0) {
+                    $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                } else if(response['status'] == 1) {
+                    $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                }
+            },
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
     // Delete Category Image
     $(document).on('click', '#deleteCategoryImage', function() {
         if(confirm('Are you sure you want to delete this category image?')) {
@@ -157,11 +181,13 @@ $(document).ready(function() {
 
     $(document).on('click', '.confirmDelete', function(e) {
         e.preventDefault();
+
         let button = $(this);
         let module = button.data('module');
         let moduleid = button.data('id');
         let form = button.closest('form');
         let redirectUrl = "/admin/delete-" + module + "/" + moduleid;
+
         swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
@@ -172,10 +198,17 @@ $(document).ready(function() {
             confirmButtonText: 'Yes, delete it!',
         }).then((result) => {
             if(result.isConfirmed) {
-                if (form.length) {
-                    form.submit(); // Submit form (used in category module)
+                // Check if form exists AND delete route
+                if(form.length > 0 && form.attr('action') && form.attr('method') === 'POST') {
+                    // Create and append hidden_method input if not present
+                    if (form.find('input[name="_method"]').length === 0) {
+                        form.append('<input type="hidden" name="_method" value="DELETE">');
+                    }
+                    // Submit form
+                    form.submit();
                 } else {
-                    window.location.href = redirectUrl; // Redirect for subadmin delete
+                    // Redirect if no delete form exists
+                    window.location.href = redirectUrl;
                 }
             }
         });

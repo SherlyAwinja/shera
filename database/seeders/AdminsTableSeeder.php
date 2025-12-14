@@ -15,7 +15,8 @@ class AdminsTableSeeder extends Seeder
     public function run(): void
     {
         $password = Hash::make('12345678');
-        /*$admin = new Admin;
+        
+        $admin = new Admin;
         $admin->name = 'Sheryl Awinja';
         $admin->role = 'admin';
         $admin->mobile = '1234567890';
@@ -23,13 +24,13 @@ class AdminsTableSeeder extends Seeder
         $admin->password = $password;
         $admin->status = 1;
         $admin->save();
-        */
+
 
         $admin = new Admin;
-        $admin->name = 'John Doe';
+        $admin->name = 'Shera';
         $admin->role = 'subadmin';
-        $admin->mobile = '0123456789';
-        $admin->email = 'john@admin.com';
+        $admin->mobile = '0740549910';
+        $admin->email = 'shera@admin.com';
         $admin->password = $password;
         $admin->status = 1;
         $admin->save();
@@ -37,7 +38,7 @@ class AdminsTableSeeder extends Seeder
         $admin = new Admin;
         $admin->name = 'Jane Doe';
         $admin->role = 'subadmin';
-        $admin->mobile = '1234567890';
+        $admin->mobile = '0123456789';
         $admin->email = 'jane@admin.com';
         $admin->password = $password;
         $admin->status = 1;
