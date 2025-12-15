@@ -30,7 +30,7 @@
             <!--begin::Row-->
             <div class="row g-4">
                 <!--begin::Col-->
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <!--begin::Quick Example-->
                     <div class="card card-primary card-outline mb-4">
                         <!--begin::Header-->

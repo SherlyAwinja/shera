@@ -7,6 +7,7 @@ use App\Models\AdminsRole;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
 use App\Models\ProductsImage;
+use App\Models\ProductsAttribute;
 
 
 class ProductService
@@ -187,7 +188,78 @@ class ProductService
             }
         }
 
+        // Add Product Attributes
+        $total_stock = 0;
+        foreach($data['sku'] as $key => $value) {
+            if(!empty($value)&&!empty($data['size'][$key])&&!empty($data['price'][$key])) {
+                // SKU already exists check (no need to join with products)
+                $attrCountSKU = ProductsAttribute::where('sku', $value)->count();
+                if($attrCountSKU > 0) {
+                    $message = "SKU already exists. Please add another SKU.";
+                    return redirect()->back()->with('success_message', $message);
+                }
+                // Size already exists check, scoped to this product
+                $attrCountSize = ProductsAttribute::where([
+                    'product_id' => $product->id,
+                    'size'       => $data['size'][$key],
+                ])->count();
+                if($attrCountSize > 0) {
+                    $message = "Size already exists. Please add another size.";
+                    return redirect()->back()->with('success_message', $message);
+                }
+                if(empty($data['stock'][$key])) {
+                    $data['stock'][$key] = 0;
+                }
+                $attribute = new ProductsAttribute;
+                $attribute->product_id = $product->id;
+                $attribute->sku = $value;
+                $attribute->size = $data['size'][$key];
+                $attribute->price = $data['price'][$key];
+                if(!empty($data['stock'][$key])) {
+                    $attribute->stock = $data['stock'][$key];
+                }
+                $attribute->sort = $data['sort'][$key];
+                $attribute->status = 1;
+                $attribute->save();
+                $total_stock = $total_stock + $data['stock'][$key];
+            }
+        }
+
+        // Edit Product Attributes
+        if(isset($data['id']) && $data['id'] != "" && isset($data['attrId'])) {
+            foreach ($data['attrId'] as $key => $attr) {
+                if(!empty($attr)) {
+                    $update_attr = [
+                        'price' => $data['update_price'][$key],
+                        'stock' => $data['update_stock'][$key],
+                        'sort' => $data['update_sort'][$key],
+                    ];
+                    ProductsAttribute::where(['id' => $data['attrId'][$key]])->update($update_attr);
+                }
+            }
+        }
+
+        // Update Product stock on Edit Product
+        if(isset($data['attrId'])) {
+            foreach ($data['attrId'] as $attrKeyId => $attrIdDetails) {
+                $proAttrUpdate = ProductsAttribute::find($attrIdDetails);
+                if ($proAttrUpdate) {
+                    $proAttrUpdate->stock = $data['update_stock'][$attrKeyId];
+                    $proAttrUpdate->save();
+                    $total_stock = $total_stock + $data['update_stock'][$attrKeyId];
+                }
+            }
+        }
+        Product::where('id', $product->id)->update(['stock' => $total_stock]);
+
+
         return $message;
+    }
+
+    public function updateAttributeStatus($data) {
+        $status = ($data['status'] == "Active") ? 0 : 1;
+        ProductsAttribute::where('id', $data['attribute_id'])->update(['status' => $status]);
+        return $status;
     }
 
     /**
@@ -292,6 +364,12 @@ class ProductService
 
         $message = "Product video deleted successfully";
         return $message;
+    }
+
+    public function deleteProductAttribute($id) {
+        // Delete Attribute
+        ProductsAttribute::where('id', $id)->delete();
+        return "Product attribute deleted successfully";
     }
     
 }

@@ -1,5 +1,26 @@
 $(document).ready(function() {
 
+    // Add/Remove Attribute Script
+    const maxField   = 10;
+    const wrapper    = $('.field_wrapper');
+    const removeTmpl = '<a href="javascript:void(0);" class="btn btn-sm btn-danger remove_button" title="Remove row"><i class="fas fa-minus"></i></a>';
+
+    // Add new attribute row
+    $(document).on('click', '.add_button', function(e) {
+        e.preventDefault();
+        if (wrapper.find('.attribute-row').length >= maxField) return;
+        const row = $(this).closest('.attribute-row').clone();
+        row.find('input').val('');  // clear values
+        // Replace the + button in the cloned row with a - button
+        row.find('.add_button').replaceWith(removeTmpl);
+        wrapper.append(row);
+    });
+
+    wrapper.on('click', '.remove_button', function(e) {
+        e.preventDefault();
+        $(this).closest('.attribute-row').remove();
+    });
+
     // Check Admin Password is correct or not
     $('#current_password').keyup(function() {
         var current_password = $('#current_password').val();
@@ -114,6 +135,30 @@ $(document).ready(function() {
                     $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
                 } else if(response['status'] == 1) {
                     $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                }
+            },
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
+    // Update Attribute Status
+    $(document).on('click', '.updateAttributeStatus', function() {
+        var status = $(this).find('i').data('status');
+        var attribute_id = $(this).data('attribute_id');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-attribute-status',
+            data: { status: status, attribute_id: attribute_id },
+            success: function(response) {
+                if(response['status'] == 0) {
+                    $("a[data-attribute_id='" + attribute_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                } else if(response['status'] == 1) {
+                    $("a[data-attribute_id='" + attribute_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
                 }
             },
             error: function() {

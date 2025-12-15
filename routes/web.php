@@ -63,6 +63,7 @@ Route::prefix('admin')->group(function () {
         Route::resource('products', ProductController::class);
         // Update Product Status Route
         Route::post('update-product-status', [ProductController::class, 'updateProductStatus']);
+        
         // Upload Product Image Route
         Route::post('/product/upload-image', [ProductController::class, 'uploadImage'])->name('product.upload.image');
         // Upload Product Images Route
@@ -77,6 +78,12 @@ Route::prefix('admin')->group(function () {
         Route::get('delete-product-main-image/{id?}', [ProductController::class, 'deleteProductMainImage']);
         // Delete Product Video Route
         Route::get('delete-product-video/{id}', [ProductController::class, 'deleteProductVideo']);
+
+        // Attributes
+        // Update Product Attribute Status
+        Route::post('update-attribute-status', [ProductController::class, 'updateAttributeStatus']);
+        // Delete Product Attribute
+        Route::get('delete-product-attribute/{id}', [ProductController::class, 'deleteProductAttribute']);
 
         // Logout Route
         Route::get('logout', [AdminController::class, 'destroy'])->name('admin.logout');
