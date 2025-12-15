@@ -19,4 +19,9 @@ class Product extends Model
     {
         return $this->dimensions;
     }
+
+    public function product_images()
+    {
+        return $this->hasMany(ProductsImage::class);
+    }
 }

@@ -94,13 +94,19 @@
                                 <input type="text" class="form-control" id="product_color" name="product_color" placeholder="Enter Product Color" value="{{ old('product_color', $product->product_color ?? '') }}">
                             </div>
 
+                            <?php $familyColors = \App\Models\Color::colors(); ?>
                             <div class="mb-3">
                                 <label class="form-label" for="family_color">Family Color*</label>
-                                <input type="text" class="form-control" id="family_color" name="family_color" placeholder="Enter Family Color" value="{{ old('family_color', $product->family_color ?? '') }}">
+                                <select name="family_color" class="form-control">
+                                    <option value="">Please Select</option>
+                                    @foreach($familyColors as $color)
+                                    <option value="{{  $color->name }}" @if(isset($product['family_color']) && $product['family_color'] == $color->name) selected @endif>{{ $color->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="group_code">Group Code*</label>
+                                <label class="form-label" for="group_code">Group Code</label>
                                 <input type="text" class="form-control" id="group_code" name="group_code" placeholder="Enter Group Code" value="{{ old('group_code', $product->group_code ?? '') }}">
                             </div>
 
@@ -151,10 +157,31 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label" for="product_images_dropzone">Alternate Product Images (Multiple Uploads Allowed, Max 500KB each)</label>
+                                <div class="dropzone" id="productImagesDropzone"></div>
+
+                                @if(isset($product->product_images) && $product->product_images->count() > 0)
+                                @foreach($product->product_images as $img)
+                                <div style="display:inline-block; position:relative;margin: 5px;">
+                                    <a target="_blank" href="{{ url('front/images/products/'.$img->image) }}">
+                                        <img src="{{ asset('front/images/products/'.$img->image) }}" style="width: 50px;">
+                                    </a>
+                                    <a href="javascript:void(0)" class="confirmDelete" data-module="product-image" 
+                                    data-id="{{ $img->id }}" data-image="{{ $img->image }}">
+                                    <i class="fa fa-trash" style="position:absolute;top:0;right:0;color:red"></i>
+                                    </a>
+                                </div>
+                                @endforeach
+                                @endif
+                                <input type="hidden" name="product_images_hidden" id="product_images_hidden">
+
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="main_video_dropzone">Product Video(Max 2MB)</label>
                                 <div class="dropzone" id="productVideoDropzone"></div>
 
-                                <input type="hidden" name="product_video" id="product_video_hidden">
+                                <input type="hidden" name="product_video_hidden" id="product_video_hidden">
 
                                 @if(!empty($product['product_video']))
                                 <a target="_blank" href="{{ url('front/videos/products/'.$product['product_video']) }}">View Video</a>

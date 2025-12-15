@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\Category;
+use App\Http\Requests\Admin\ProductRequest;
 
 
 
@@ -51,7 +52,7 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
         $message = $this->productService->addEditProduct($request);
         return redirect()->route('products.index')->with('success_message', $message);
@@ -71,7 +72,7 @@ class ProductController extends Controller
     public function edit(string $id)
     {
         $title = 'Edit Product';
-        $product = Product::findOrFail($id);
+        $product = Product::with('product_images')->findOrFail($id);
         $getCategories = Category::getCategories('Admin');
         return view('admin.products.add_edit_product', compact('title', 'getCategories', 'product'));
     }
@@ -79,7 +80,7 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ProductRequest $request, string $id)
     {
         $request->merge(['id' => $id]);
         $message = $this->productService->addEditProduct($request);
@@ -114,9 +115,40 @@ class ProductController extends Controller
     {
         if ($request->hasFile('file')) {
             $fileName = $this->productService->handleImageUpload($request->file('file'));
-            return response()->json(['fileName' => $fileName]);
+            return response()->json(['fileName' => $fileName, 'success' => true]);
         }
+
         return response()->json(['error' => 'No file uploaded'], 400);
+    }
+
+    public function uploadImages(Request $request)
+    {
+        if ($request->hasFile('file')) {
+            $fileName = $this->productService->handleImageUpload($request->file('file'));
+            return response()->json(['fileName' => $fileName, 'success' => true]);
+        }
+
+        return response()->json(['error' => 'No file uploaded'], 400);
+    }
+
+    /**
+     * Delete temporarily uploaded image (from Dropzone before form submit)
+     */
+    public function deleteTempImage(Request $request)
+    {
+        $fileName = $request->input('fileName');
+
+        if (!$fileName) {
+            return response()->json(['success' => false, 'message' => 'Filename is required'], 400);
+        }
+
+        $filePath = public_path('temp/' . $fileName);
+
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -137,6 +169,11 @@ class ProductController extends Controller
     public function deleteProductMainImage(string $id)
     {
         $message = $this->productService->deleteProductMainImage($id);
+        return redirect()->back()->with('success_message', $message);
+    }
+
+    public function deleteProductImage($id){
+        $message = $this->productService->deleteProductImage($id);
         return redirect()->back()->with('success_message', $message);
     }
 

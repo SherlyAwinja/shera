@@ -214,10 +214,10 @@ href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Dropzone CSS -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0/min/dropzone.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" rel="stylesheet">
 
 <!-- Dropzone JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0/min/dropzone.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
 
 <script>
   Dropzone.autoDiscover = false;
@@ -259,30 +259,91 @@ href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
       });
     }
 
-    // Product Video Dropzone
-    let productVideoDropzone = new Dropzone("#productVideoDropzone", {
-      url: "{{ route('product.upload.video') }}",
-      maxFiles: 1,
-      maxFilesize: 2, // 2MB
-      acceptedFiles: "video/*",
+    // Product Images Dropzone
+    let productImagesDropzone = new Dropzone("#productImagesDropzone", {
+      url: "{{ route('product.upload.images') }}",
+      maxFiles: 10,
+      acceptedFiles: "image/*",
+      parallelUploads: 10, // Add this line to allow parallel uploads
+      uploadMultiple: false, // Keep this false unless you want to send all files in one request
+      maxFilesize: 0.5,
       addRemoveLinks: true,
-      dictDefaultMessage: "Drag & drop product video here or click to upload.",
+      dictDefaultMessage: "Drag & drop product images here or click to upload.",
       headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}",
       },
-      success: function(file, response) {
-        document.getElementById('product_video_hidden').value = response.fileName;
-      },
-      error: function(file, message) {
-        alert(message);
-        this.removeFile(file);
-      },
       init: function() {
-        this.on("maxfilesexceeded", function(file) {
-          this.removeAllFiles();
-          this.addFile(file);
+        this.on("success", function(file, response) {
+          // Append filename to hidden input
+          let hiddenInput = document.getElementById('product_images_hidden');
+          let currentVal = hiddenInput.value;
+
+          if (currentVal === '') {
+            hiddenInput.value = response.fileName;
+          } else {
+            hiddenInput.value = currentVal + ',' + response.fileName;
+          }
+
+          file.uploadedFileName = response.fileName;
+        });
+
+        this.on("removedfile", function(file) {
+          if (file.uploadedFileName) {
+            let hiddenInput = document.getElementById('product_images_hidden');
+            let currentVal = hiddenInput.value;
+            let files = currentVal.split(',');
+
+            files = files.filter(name => name !== file.uploadedFileName);
+            hiddenInput.value = files.join(',');
+
+            // Optional:Delete the file from the server
+            $.ajax({
+              url: "{{ route('product.delete.temp.image') }}",
+              type: "POST",
+              data: {fileName: file.uploadedFileName},
+              headers: {
+                'X-CSRF-TOKEN': "{{ csrf_token() }}",
+              },
+            });
+          }
         });
       }
     });
-  )}
+
+    // Product Video Dropzone
+    if ($("#productVideoDropzone").length) {
+      let productVideoDropzone = new Dropzone("#productVideoDropzone", {
+        url: "{{ route('product.upload.video') }}",
+        maxFiles: 1,
+        maxFilesize: 2, // 2MB
+        acceptedFiles: "video/*",
+        addRemoveLinks: true,
+        dictDefaultMessage: "Drag & drop product video here or click to upload.",
+        headers: {
+          'X-CSRF-TOKEN': "{{ csrf_token() }}",
+        },
+        success: function(file, response) {
+          if (response.fileName) {
+            document.getElementById('product_video_hidden').value = response.fileName;
+          }
+        },
+        error: function(file, message) {
+          if (typeof message === 'string') {
+            alert(message);
+          } else if (message && message.message) {
+            alert(message.message);
+          } else {
+            alert('Error uploading video');
+          }
+          this.removeFile(file);
+        },
+        init: function() {
+          this.on("maxfilesexceeded", function(file) {
+            this.removeAllFiles();
+            this.addFile(file);
+          });
+        }
+      });
+    }
+  });
 </script>

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\AdminsRole;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
+use App\Models\ProductsImage;
 
 
 class ProductService
@@ -122,6 +123,12 @@ class ProductService
             $sourcePath = public_path('temp/'.$data['main_image_hidden']);
             $destinationPath = public_path('front/images/products/'.$data['main_image_hidden']);
 
+            // Create destination directory if it doesn't exist
+            $imageDir = public_path('front/images/products');
+            if (!file_exists($imageDir)) {
+                mkdir($imageDir, 0755, true);
+            }
+
             if(file_exists($sourcePath)) {
                 @copy($sourcePath, $destinationPath);
                 @unlink($sourcePath);
@@ -135,6 +142,12 @@ class ProductService
             $sourcePath = public_path('temp/'.$data['product_video_hidden']);
             $destinationPath = public_path('front/videos/products/'.$data['product_video_hidden']);
 
+            // Create destination directory if it doesn't exist
+            $videoDir = public_path('front/videos/products');
+            if (!file_exists($videoDir)) {
+                mkdir($videoDir, 0755, true);
+            }
+
             if(file_exists($sourcePath)) {
                 @copy($sourcePath, $destinationPath);
                 @unlink($sourcePath);
@@ -143,9 +156,37 @@ class ProductService
             $product->product_video = $data['product_video_hidden'];
         }
 
-        $product->main_image = $request->main_image ?? $product->main_image;
-        $product->product_video = $request->product_video ?? $product->product_video;
         $product->save();
+
+        // Upload Alternate Product Images
+        // NOTE: Frontend stores uploaded filenames in hidden field: product_images_hidden
+        if(!empty($data['product_images_hidden'])) {
+            // Ensure we have an array
+            $imageFiles = is_array($data['product_images_hidden']) 
+                ? $data['product_images_hidden'] 
+                : explode(',', $data['product_images_hidden']);
+
+            // Remove any empty values
+            $imageFiles = array_filter($imageFiles);
+
+            foreach ($imageFiles as $index => $filename) {
+                $sourcePath = public_path('temp/'.$filename);
+                $destinationPath = public_path('front/images/products/'.$filename);
+
+                if (file_exists($sourcePath)) {
+                    @copy($sourcePath, $destinationPath);
+                    @unlink($sourcePath);
+                }
+
+                ProductsImage::create([
+                    'product_id' => $product->id,
+                    'image' => $filename,
+                    'sort' => $index,
+                    'status' => 1,
+                ]);
+            }
+        }
+
         return $message;
     }
 
@@ -154,8 +195,15 @@ class ProductService
      */
     public function handleImageUpload($file)
     {
-        $imageName = time() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path('front/images/products'), $imageName);
+        // Always upload to temp first; final move happens on form submit
+        $imageName = time() . '_' . rand(1111, 9999). '.'. $file->getClientOriginalExtension();
+
+        $tempDir = public_path('temp');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $file->move($tempDir, $imageName);
         return $imageName;
     }
 
@@ -164,7 +212,7 @@ class ProductService
      */
     public function handleVideoUpload($file)
     {
-        $videoName = time() . '.' . $file->getClientOriginalExtension();
+        $videoName = time() . '_' . rand(1111, 9999). '.'. $file->getClientOriginalExtension();
         $file->move(public_path('front/videos/products'), $videoName);
         return $videoName;
     }
@@ -196,6 +244,30 @@ class ProductService
         return $message;
     }
 
+    public function deleteProductImage($id)
+    {
+        // Get Product Image
+        $product = ProductsImage::select('image')->where('id', $id)->first();
+
+        if (!$product || !$product->image) {
+            return "Product image not found";
+        }
+
+        // Get Product Image Path
+        $image_path = public_path('front/images/products/' . $product->image);
+
+        // Delete Product Image if exists
+        if (file_exists($image_path)) {
+            unlink($image_path);
+        }
+
+        // Delete Product Image from products_images table
+        ProductsImage::where('id', $id)->delete();
+
+        $message = "Product image deleted successfully";
+        return $message;
+    }
+
     /**
      * Delete Product Video
      */
@@ -203,16 +275,20 @@ class ProductService
         // Get Product Video
         $productVideo = Product::select('product_video')->where('id', $id)->first();
 
-        // Get Product Video Path
-        $product_video_path = 'front/videos/products/';
+        if (!$productVideo || !$productVideo->product_video) {
+            return "Product video not found";
+        }
 
-        // Delete Product Video from folderif exists
-        if (file_exists($product_video_path . $productVideo->product_video)) {
-            unlink($product_video_path . $productVideo->product_video);
+        // Get Product Video Path
+        $product_video_path = public_path('front/videos/products/' . $productVideo->product_video);
+
+        // Delete Product Video from folder if exists
+        if (file_exists($product_video_path)) {
+            unlink($product_video_path);
         }
         
         // Delete Product Video from product table
-        Product::where('id', $id)->update(['product_video' => '']);
+        Product::where('id', $id)->update(['product_video' => null]);
 
         $message = "Product video deleted successfully";
         return $message;
