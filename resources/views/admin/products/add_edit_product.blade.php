@@ -230,32 +230,61 @@
                                 <input type="hidden" name="main_image_hidden" id="main_image_hidden">
 
                                 @if(!empty($product['main_image']))
-                                <a target="_blank" href="{{ url('front/images/products/'.$product['main_image']) }}">
-                                <img style="width: 50px; margin: 10px;" src="{{ asset('front/images/products/'.$product['main_image']) }}"></a>
-                                <a style='color:#3f6ed3'; class="confirmDelete" title="Delete Product Image" href="javascript:void(0)" data-module="product-main-image" data-id="{{ $product['id'] }}"><i class="fa fa-trash"></i></a>
+                                <div class="mt-3">
+                                    <p class="mb-2"><strong>Current Main Image:</strong></p>
+                                    <div class="d-inline-block position-relative">
+                                        <a target="_blank" href="{{ url('front/images/products/'.$product['main_image']) }}" title="Click to view full size">
+                                            <img src="{{ asset('front/images/products/'.$product['main_image']) }}" 
+                                            style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
+                                        </a>
+                                        <a style='color:#dc3545'; class="confirmDelete" title="Delete Product Image" href="javascript:void(0)" data-module="product-main-image" data-id="{{ $product['id'] }}"
+                                           style="position: absolute; top: -5px; right: -5px; background: white; border-radius: 50%; padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                            <i class="fa fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
                                 @endif
                                 
                             </div>
+                            <div id="mainImageDropzoneError" style="color: red; display: none;"></div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="product_images_dropzone">Alternate Product Images (Multiple Uploads Allowed, Max 500KB each)</label>
+                                <label class="form-label" for="product_images_dropzone">
+                                    Alternate Product Images (Multiple Uploads Allowed, Max 500KB each)
+                                </label>
                                 <div class="dropzone" id="productImagesDropzone"></div>
-
                                 @if(isset($product->product_images) && $product->product_images->count() > 0)
-                                @foreach($product->product_images as $img)
-                                <div style="display:inline-block; position:relative;margin: 5px;">
-                                    <a target="_blank" href="{{ url('front/images/products/'.$img->image) }}">
-                                        <img src="{{ asset('front/images/products/'.$img->image) }}" style="width: 50px;">
-                                    </a>
-                                    <a href="javascript:void(0)" class="confirmDelete" data-module="product-image" 
-                                    data-id="{{ $img->id }}" data-image="{{ $img->image }}">
-                                    <i class="fa fa-trash" style="position:absolute;top:0;right:0;color:red"></i>
-                                    </a>
+                                <div class="mt-3">
+                                    <p class="mb-2"><strong>Existing Alternate Images:</strong></p>
+                                    @if($product->product_images->count() > 1)
+                                    <!--Instruction Line-->
+                                    <p class="drag-instruction text-muted small mb-2">
+                                        <i class="fas fa-arrows-alt"></i> Drag and drop below images to reorder them
+                                    </p>
+                                    @endif
+                                    <!-- Container for sortable images -->
+                                    <div id="sortable-images" class="sortable-wrapper d-flex gap-2 flex-wrap">
+                                        @foreach($product->product_images as $img)
+                                        <div class="sortable-item position-relative" data-id="{{ $img->id }}" style="margin-bottom: 10px;">
+                                            <a target="_blank" href="{{ url('front/images/products/'.$img->image) }}" title="Click to view full size">
+                                                <img src="{{ asset('front/images/products/'.$img->image) }}" 
+                                                style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
+                                            </a>
+                                            <a href="javascript:void(0)" class="confirmDelete text-danger" 
+                                               data-module="product-image" 
+                                               data-id="{{ $img->id }}" 
+                                               data-image="{{ $img->image }}"
+                                               title="Delete Image"
+                                               style="position: absolute; top: -5px; right: -5px; background: white; border-radius: 50%; padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                        @endforeach
+                                    </div>
                                 </div>
-                                @endforeach
                                 @endif
+                            <!-- Hidden input to collect alternate images -->
                                 <input type="hidden" name="product_images_hidden" id="product_images_hidden">
-
                             </div>
 
                             <div class="mb-3">

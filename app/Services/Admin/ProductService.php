@@ -284,8 +284,15 @@ class ProductService
      */
     public function handleVideoUpload($file)
     {
+        // Always upload to temp first; final move happens on form submit
         $videoName = time() . '_' . rand(1111, 9999). '.'. $file->getClientOriginalExtension();
-        $file->move(public_path('front/videos/products'), $videoName);
+
+        $tempDir = public_path('temp');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $file->move($tempDir, $videoName);
         return $videoName;
     }
 
@@ -371,5 +378,43 @@ class ProductService
         ProductsAttribute::where('id', $id)->delete();
         return "Product attribute deleted successfully";
     }
-    
+
+
+    public function updateImageSorting(array $sortedImages): void {
+        foreach($sortedImages as $imageData) {
+            if(isset($imageData['id']) && isset($imageData['sort'])) {
+                ProductsImage::where('id', $imageData['id'])->update([
+                    'sort' => $imageData['sort']
+                ]);
+            }
+        }
+    }
+
+    public function deleteDropzoneImage(string $imageName): bool {
+        // Check temp folder first (for files not yet submitted)
+        $tempPath = public_path('temp/' . $imageName);
+        if (file_exists($tempPath)) {
+            return unlink($tempPath);
+        }
+        // Check final folder (for already saved files)
+        $imagePath = public_path('front/images/products/' . $imageName);
+        if (file_exists($imagePath)) {
+            return unlink($imagePath);
+        }
+        return false;
+    }
+
+    public function deleteDropzoneVideo(string $videoName): bool {
+        // Check temp folder first (for files not yet submitted)
+        $tempPath = public_path('temp/' . $videoName);
+        if (file_exists($tempPath)) {
+            return unlink($tempPath);
+        }
+        // Check final folder (for already saved files)
+        $videoPath = public_path('front/videos/products/' . $videoName);
+        if (file_exists($videoPath)) {
+            return unlink($videoPath);
+        }
+        return false;
+    }
 }

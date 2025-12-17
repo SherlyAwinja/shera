@@ -79,6 +79,13 @@ Route::prefix('admin')->group(function () {
         // Delete Product Video Route
         Route::get('delete-product-video/{id}', [ProductController::class, 'deleteProductVideo']);
 
+
+        // Update Product Image Sorting Route
+        Route::post('/products/update-image-sorting', [ProductController::class, 'updateImageSorting'])->name('admin.products.update-image-sorting');
+        Route::post('/products/delete-dropzone-image', [ProductController::class, 'deleteDropzoneImage'])->name('admin.products.delete-image');
+        Route::post('/products/delete-temp-image', [ProductController::class, 'deleteTempProductImage'])->name('product.delete.temp.altimage');
+        Route::post('/products/delete-temp-video', [ProductController::class, 'deleteTempProductVideo'])->name('product.delete.temp.video');
+
         // Attributes
         // Update Product Attribute Status
         Route::post('update-attribute-status', [ProductController::class, 'updateAttributeStatus']);
