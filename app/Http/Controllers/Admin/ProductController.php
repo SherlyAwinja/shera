@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\Category;
 use App\Http\Requests\Admin\ProductRequest;
+use App\Models\ColumnPrefence;
 
 
 
@@ -33,9 +34,18 @@ class ProductController extends Controller
         if ($result['status'] == "error") {
             return redirect('admin/dashboard')->with('error_message', $result['message']);
         }
+
+        $productsSavedOrderJson = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())
+        ->where('table_name', 'products')
+        ->value('column_order');
+        
+        // Decode JSON string to array, or return null if not found
+        $productsSavedOrder = $productsSavedOrderJson ? json_decode($productsSavedOrderJson, true) : null;
+
         return view('admin.products.index', [
             'products' => $result['products'],
             'productsModule' => $result['productsModule'],
+            'productsSavedOrder' => $productsSavedOrder,
         ]);
     }
 

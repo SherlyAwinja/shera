@@ -203,15 +203,106 @@
 <!-- Custom Script -->
 <script src="{{ url('admin/js/custom.js') }}"></script>
 
-<!-- DataTables -->
-<link rel="stylesheet" 
-href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<!-- DataTable CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.dataTables.min.css">
+
+<!-- ColReorder CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/colreorder/1.6.2/css/colReorder.dataTables.min.css">
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<!-- ColReorder JS -->
+<script src="https://cdn.datatables.net/colreorder/1.6.2/js/dataTables.colReorder.min.js"></script>
+
 <script>
     $(document).ready(function() {
-        $('#categories').DataTable();
+      // Initialize subadmins DataTable if table exists
+      if ($('#subadmins').length) {
         $('#subadmins').DataTable();
-        $('#products').DataTable();
+      }
+
+      // Helper function to parse saved column order
+      function parseSavedOrder(savedOrder) {
+        if (!savedOrder || savedOrder === 'null') {
+          return null;
+        }
+        try {
+          // If it's already a string, parse it; if it's already parsed, return as is
+          return typeof savedOrder === 'string' ? JSON.parse(savedOrder) : savedOrder;
+        } catch (e) {
+          console.error('Error parsing saved order:', e);
+          return null;
+        }
+      }
+
+      // Helper function to save column order via AJAX
+      function saveColumnOrder(tableKey, columnOrder) {
+        $.ajax({
+          url: "{{ url('admin/save-column-order') }}",
+          type: "POST",
+          data: {
+            _token: "{{ csrf_token() }}",
+            table_key: tableKey,
+            column_order: columnOrder,
+          },
+          success: function(response) {
+            if (response.status === 'success') {
+              console.log(tableKey.charAt(0).toUpperCase() + tableKey.slice(1) + ' column order saved successfully');
+              // Optional: Show a subtle notification
+              // toastr.success('Column order saved');
+            } else {
+              console.error('Error saving column order:', response.message);
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('AJAX error saving column order:', error);
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+              console.error('Server message:', xhr.responseJSON.message);
+            }
+          }
+        });
+      }
+
+      // Initialize Categories DataTable if table exists
+      if ($('#categories').length) {
+        let categoriesSavedOrder = parseSavedOrder({!! json_encode($categoriesSavedOrder ?? null) !!});
+        
+        let categoriesDataTable = $('#categories').DataTable({
+          order: [[0, "desc"]],
+          colReorder: {
+            order: categoriesSavedOrder,
+            realtime: true,
+          },
+          stateSave: false,
+        });
+
+        // Handle Column reorder for Categories
+        categoriesDataTable.on('column-reorder', function(e, settings, details) {
+          let columnOrder = categoriesDataTable.colReorder.order();
+          saveColumnOrder('categories', columnOrder);
+        });
+      }
+
+      // Initialize Products DataTable if table exists
+      if ($('#products').length) {
+        let productsSavedOrder = parseSavedOrder({!! json_encode($productsSavedOrder ?? null) !!});
+        
+        let productsDataTable = $('#products').DataTable({
+          order: [[0, "desc"]],
+          colReorder: {
+            order: productsSavedOrder,
+            realtime: true,
+          },
+          stateSave: false,
+        });
+
+        // Handle Column reorder for Products
+        productsDataTable.on('column-reorder', function(e, settings, details) {
+          let columnOrder = productsDataTable.colReorder.order();
+          saveColumnOrder('products', columnOrder);
+        });
+      }
     });
 </script>
 
