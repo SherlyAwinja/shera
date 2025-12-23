@@ -31,18 +31,21 @@ class CategoryController extends Controller
         if($results['status'] === "error") {
             return redirect('admin/dashboard')->with('error_message', $results['message']);
         }
-        $categoriesSavedOrderJson = ColumnPrefence::where('admin_id', Auth::guard('admin')
-        ->id())->where('table_name', 'categories')
-        ->value('column_order');
-        
-        // Decode JSON string to array, or return null if not found
-        $categoriesSavedOrder = $categoriesSavedOrderJson ? json_decode($categoriesSavedOrderJson, true) : null;
+        $categories = $results['categories'];
+        $categoriesModule = $results['categoriesModule'];
 
-        return view('admin.categories.index', [
-            'categories' => $results['categories'],
-            'categoriesModule' => $results['categoriesModule'],
-            'categoriesSavedOrder' => $categoriesSavedOrder,
-        ]);
+        $columnPrefs = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'categories')->first();
+
+        $categoriesSavedOrder = $columnPrefs ? json_decode($columnPrefs->column_order, true) : null;
+
+        $categoriesHiddenCols = $columnPrefs ? json_decode($columnPrefs->hidden_columns, true) : null;
+
+        return view('admin.categories.index')->with(compact(
+            'categories',
+            'categoriesModule',
+            'categoriesSavedOrder',
+            'categoriesHiddenCols'
+        ));
     }
 
     /**

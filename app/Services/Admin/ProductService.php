@@ -80,6 +80,7 @@ class ProductService
         $product->admin_type = Auth::guard('admin')->user()->role;
 
         $product->category_id = $data['category_id'];
+        $product->brand_id = $data['brand_id'];
         $product->product_name = $data['product_name'];
         $product->product_code = $data['product_code'];
         $product->product_color = $data['product_color'];

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\Category;
 use App\Http\Requests\Admin\ProductRequest;
+use App\Models\Brand;
 use App\Models\ColumnPrefence;
 
 
@@ -34,19 +35,21 @@ class ProductController extends Controller
         if ($result['status'] == "error") {
             return redirect('admin/dashboard')->with('error_message', $result['message']);
         }
+        $products = $result['products'];
+        $productsModule = $result['productsModule'];
 
-        $productsSavedOrderJson = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())
-        ->where('table_name', 'products')
-        ->value('column_order');
-        
-        // Decode JSON string to array, or return null if not found
-        $productsSavedOrder = $productsSavedOrderJson ? json_decode($productsSavedOrderJson, true) : null;
+        $columnPrefs = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'products')->first();
 
-        return view('admin.products.index', [
-            'products' => $result['products'],
-            'productsModule' => $result['productsModule'],
-            'productsSavedOrder' => $productsSavedOrder,
-        ]);
+        $productsSavedOrder = $columnPrefs ? json_decode($columnPrefs->column_order, true) : null;
+
+        $productsHiddenCols = $columnPrefs ? json_decode($columnPrefs->hidden_columns, true) : null;
+
+        return view('admin.products.index')->with(compact(
+            'products',
+            'productsModule',
+            'productsSavedOrder',
+            'productsHiddenCols'
+        ));
     }
 
     /**
@@ -56,7 +59,9 @@ class ProductController extends Controller
     {
         $title = 'Add Product';
         $getCategories = Category::getCategories('Admin');
-        return view('admin.products.add_edit_product', compact('title', 'getCategories'));
+        // Get All Active Brands
+        $brands = Brand::where('status', 1)->get()->toArray();
+        return view('admin.products.add_edit_product', compact('title', 'getCategories', 'brands'));
     }
 
     /**
@@ -84,7 +89,9 @@ class ProductController extends Controller
         $title = 'Edit Product';
         $product = Product::with('product_images', 'attributes')->findOrFail($id);
         $getCategories = Category::getCategories('Admin');
-        return view('admin.products.add_edit_product', compact('title', 'getCategories', 'product'));
+        // Get All Active Brands
+        $brands = Brand::where('status', 1)->get()->toArray();
+        return view('admin.products.add_edit_product', compact('title', 'getCategories', 'product', 'brands'));
     }
 
     /**

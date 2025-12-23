@@ -65,19 +65,32 @@
                                 <select name="category_id" class="form-control">
                                     <option value="">Select</option>
                                     @foreach($getCategories as $cat)
-                                    <option value="{{ $cat['id'] }}" @if(old('category_id', $product->category_id ?? '') == $cat['id']) selected @endif>{{ $cat['name'] }}</option>
+                                    <option value="{{ $cat['id'] }}" @if(old('category_id', isset($product) ? $product->category_id : '') == $cat['id']) selected @endif>{{ $cat['name'] }}</option>
                                     @if(!empty($cat['subcategories']))
                                     @foreach($cat['subcategories'] as $subcat)
-                                    <option value="{{ $subcat['id'] }}" @if(old('category_id', $product->category_id ?? '') == $subcat['id']) selected @endif>&nbsp;&nbsp;&nbsp;&nbsp;&raquo;&raquo; {{ $subcat['name'] }}</option>
+                                    <option value="{{ $subcat['id'] }}" @if(old('category_id', isset($product) ? $product->category_id : '') == $subcat['id']) selected @endif>&nbsp;&nbsp;&nbsp;&nbsp;&raquo;&raquo; {{ $subcat['name'] }}</option>
                                     @if(!empty($subcat['subcategories']))
                                     @foreach($subcat['subcategories'] as $subsubcat)
-                                    <option value="{{ $subsubcat['id'] }}" @if(old('category_id', $product->category_id ?? '') == $subsubcat['id']) selected @endif>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&raquo;&raquo; {{ $subsubcat['name'] }}</option>
+                                    <option value="{{ $subsubcat['id'] }}" @if(old('category_id', isset($product) ? $product->category_id : '') == $subsubcat['id']) selected @endif>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&raquo;&raquo; {{ $subsubcat['name'] }}</option>
                                     @endforeach
                                     @endif
                                     @endforeach
                                     @endif
                                     @endforeach
                                 </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="brand_id">Select Brand*</label>
+                                <select name="brand_id" class="form-control">
+                                    <option value="">Select</option>
+                                    @foreach($brands as $brand)
+                                    <option value="{{ $brand['id'] }}"
+                                     {{ (old('brand_id', isset($product) ? $product->brand_id : '') == $brand['id']) ? 'selected' : '' }}>
+                                     {{ $brand['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
 
                             <div class="mb-3">
                                 <label class="form-label" for="product_name">Product Name*</label>
@@ -130,15 +143,15 @@
                                 <div class="d-flex gap-2">
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[length]" placeholder="Length (L)"
-                                           value="{{ old('product_dimensions[length]', $product->product_dimensions['length'] ?? '') }}">
+                                           value="{{ old('product_dimensions[length]', isset($product) && isset($product->product_dimensions['length']) ? $product->product_dimensions['length'] : '') }}">
                             
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[width]" placeholder="Width (W)"
-                                           value="{{ old('product_dimensions[width]', $product->product_dimensions['width'] ?? '') }}">
+                                           value="{{ old('product_dimensions[width]', isset($product) && isset($product->product_dimensions['width']) ? $product->product_dimensions['width'] : '') }}">
                             
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[height]" placeholder="Height (H)"
-                                           value="{{ old('product_dimensions[height]', $product->product_dimensions['height'] ?? '') }}">
+                                           value="{{ old('product_dimensions[height]', isset($product) && isset($product->product_dimensions['height']) ? $product->product_dimensions['height'] : '') }}">
                                 </div>
                             </div>
 
@@ -215,12 +228,13 @@
                                                     <a title="Delete Attribute" href="javascript:void(0)" class="confirmDelete text-danger" data-module="product-attribute" data-id="{{ $attribute['id'] }}"><i class="fas fa-trash"></i></a>
                                                 </td>
 
-                                                </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                            
+                                    </table>
                                 </div>
+                            </div>
                             @endif
                             
                             <div class="mb-3">
@@ -234,7 +248,7 @@
                                     <p class="mb-2"><strong>Current Main Image:</strong></p>
                                     <div class="d-inline-block position-relative">
                                         <a target="_blank" href="{{ url('front/images/products/'.$product['main_image']) }}" title="Click to view full size">
-                                            <img src="{{ asset('front/images/products/'.$product['main_image']) }}" 
+                                            <img src="{{ url('product-image/thumbnail/'.$product->main_image) }}" 
                                             style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                                         </a>
                                         <a style='color:#dc3545'; class="confirmDelete" title="Delete Product Image" href="javascript:void(0)" data-module="product-main-image" data-id="{{ $product['id'] }}"
@@ -267,7 +281,7 @@
                                         @foreach($product->product_images as $img)
                                         <div class="sortable-item position-relative" data-id="{{ $img->id }}" style="margin-bottom: 10px;">
                                             <a target="_blank" href="{{ url('front/images/products/'.$img->image) }}" title="Click to view full size">
-                                                <img src="{{ asset('front/images/products/'.$img->image) }}" 
+                                                <img src="{{ url('product-image/thumbnail/'.$img->image) }}" 
                                                 style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                                             </a>
                                             <a href="javascript:void(0)" class="confirmDelete text-danger" 

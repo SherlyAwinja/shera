@@ -4,11 +4,37 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\BrandController;
+use Intervention\Image\ImageManager;
+use Illuminate\Support\Facades\Response;
+
 
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('product-image/{size}/{filename}', function ($size, $filename) {
+    $sizes = config('images_sizes.product');
+    if (!isset($sizes[$size])) {
+        abort(404, 'Invalid size');
+    }
+    $width = $sizes[$size]['width'];
+    $height = $sizes[$size]['height'];
+    $path = public_path('front/images/products/' . $filename);
+    if (!file_exists($path)) {
+        abort(404, 'Image not found');
+    }
+    $manager = new ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+    $image = $manager->read($path)->resize($width, $height, function ($constraint) {
+        $constraint->aspectRatio();
+        $constraint->upsize();
+    });
+    $binary = $image->toJpeg(85); // Compression with 85% quality
+    return Response::make($binary)->header('Content-Type', 'image/jpeg');
+    
+});
+
 
 Route::prefix('admin')->group(function () {
     // Show Login Form
@@ -91,6 +117,17 @@ Route::prefix('admin')->group(function () {
         Route::post('update-attribute-status', [ProductController::class, 'updateAttributeStatus']);
         // Delete Product Attribute
         Route::get('delete-product-attribute/{id}', [ProductController::class, 'deleteProductAttribute']);
+
+        // Save Column Order Route
+        /* Route::post('/save-column-order', [AdminController::class, 'saveColumnOrder']); */
+        Route::post('/save-column-visibility', [AdminController::class, 'saveColumnVisibility'])->name('admin.save-column-visibility');
+
+        // Brands Route
+        Route::resource('brands', BrandController::class);
+        // Update Brand Status Route
+        Route::post('update-brand-status', [BrandController::class, 'updateBrandStatus']);
+        // Delete Brand Image Route
+        Route::post('delete-brand-image', [BrandController::class, 'deleteBrandImage']);
 
         // Logout Route
         Route::get('logout', [AdminController::class, 'destroy'])->name('admin.logout');

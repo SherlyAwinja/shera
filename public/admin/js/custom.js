@@ -167,6 +167,30 @@ $(document).ready(function() {
         });
     });
 
+    // Update Brand Status
+    $(document).on('click', '.updateBrandStatus', function() {
+        var status = $(this).find('i').data('status');
+        var brand_id = $(this).data('brand_id');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-brand-status',
+            data: { status: status, brand_id: brand_id },
+            success: function(response) {
+                if(response['status'] == 0) {
+                    $("a[data-brand_id='" + brand_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                } else if(response['status'] == 1) {
+                    $("a[data-brand_id='" + brand_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                }
+            },
+            error: function() {
+                alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
     // Delete Category Image
     $(document).on('click', '#deleteCategoryImage', function() {
         if(confirm('Are you sure you want to delete this category image?')) {
