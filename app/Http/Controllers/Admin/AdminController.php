@@ -33,7 +33,24 @@ class AdminController extends Controller
     public function index()
     {
         Session::put('page', 'dashboard');
-        return view('admin.dashboard');
+        $categoriesCount = \App\Models\Category::get()->count();
+        $productsCount = \App\Models\Product::get()->count();
+        $brandsCount = \App\Models\Brand::get()->count();
+        $usersCount = \App\Models\User::get()->count();
+        $couponsCount = 0;
+        $ordersCount = 0;
+        $pagesCount = 0;
+        $enquiriesCount = 0;
+        return view('admin.dashboard')->with(compact(
+            'categoriesCount', 
+            'productsCount', 
+            'brandsCount', 
+            'usersCount', 
+            'couponsCount', 
+            'ordersCount', 
+            'pagesCount', 
+            'enquiriesCount'
+        ));
     }
 
     /**

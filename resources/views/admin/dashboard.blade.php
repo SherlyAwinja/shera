@@ -33,210 +33,187 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
+
+    <!--begin::App Content-->
     <div class="app-content">
         <!--begin::Container-->
         <div class="container-fluid">
-            <!-- Info boxes -->
-            <div class="row">
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-primary shadow-sm">
-                        <i class="bi bi-gear-fill"></i>
-                        </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">CPU Traffic</span>
-                            <span class="info-box-number">
-                            10
-                            <small>%</small>
-                            </span>
-                        </div>
-                        <!-- /.info-box-content -->
-                    </div>
-                    <!-- /.info-box -->
-                </div>
-                <!-- /.col -->
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-danger shadow-sm">
-                        <i class="bi bi-hand-thumbs-up-fill"></i>
-                        </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Likes</span>
-                            <span class="info-box-number">41,410</span>
-                        </div>
-                        <!-- /.info-box-content -->
-                    </div>
-                    <!-- /.info-box -->
-                </div>
-                <!-- /.col -->
-                <!-- fix for small devices only -->
-                <!-- <div class="clearfix hidden-md-up"></div> -->
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-success shadow-sm">
-                        <i class="bi bi-cart-fill"></i>
-                        </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Sales</span>
-                            <span class="info-box-number">760</span>
-                        </div>
-                        <!-- /.info-box-content -->
-                    </div>
-                    <!-- /.info-box -->
-                </div>
-                <!-- /.col -->
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-warning shadow-sm">
-                        <i class="bi bi-people-fill"></i>
-                        </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">New Members</span>
-                            <span class="info-box-number">2,000</span>
-                        </div>
-                        <!-- /.info-box-content -->
-                    </div>
-                    <!-- /.info-box -->
-                </div>
-                <!-- /.col -->
-            </div>
-            <!-- /.row -->
             <!--begin::Row-->
             <div class="row">
-                <div class="col-md-12">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title">Monthly Recap Report</h5>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
-                                <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-                                <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-                                </button>
-                                <div class="btn-group">
-                                    <button
-                                        type="button"
-                                        class="btn btn-tool dropdown-toggle"
-                                        data-bs-toggle="dropdown"
-                                        >
-                                    <i class="bi bi-wrench"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end" role="menu">
-                                        <a href="#" class="dropdown-item">Action</a>
-                                        <a href="#" class="dropdown-item">Another action</a>
-                                        <a href="#" class="dropdown-item"> Something else here </a>
-                                        <a class="dropdown-divider"></a>
-                                        <a href="#" class="dropdown-item">Separated link</a>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-tool" data-lte-toggle="card-remove">
-                                <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 1-->
+                    <div class="small-box text-bg-primary">
+                        <div class="inner">
+                            <h3>{{ $categoriesCount }}</h3>
+                            <p>Categories</p>
                         </div>
-                        <!-- /.card-header -->
-                        <div class="card-body">
-                            <!--begin::Row-->
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <p class="text-center">
-                                        <strong>Sales: 1 Jan, 2023 - 30 Jul, 2023</strong>
-                                    </p>
-                                    <div id="sales-chart"></div>
-                                </div>
-                                <!-- /.col -->
-                                <div class="col-md-4">
-                                    <p class="text-center"><strong>Goal Completion</strong></p>
-                                    <div class="progress-group">
-                                        Add Products to Cart
-                                        <span class="float-end"><b>160</b>/200</span>
-                                        <div class="progress progress-sm">
-                                            <div class="progress-bar text-bg-primary" style="width: 80%"></div>
-                                        </div>
-                                    </div>
-                                    <!-- /.progress-group -->
-                                    <div class="progress-group">
-                                        Complete Purchase
-                                        <span class="float-end"><b>310</b>/400</span>
-                                        <div class="progress progress-sm">
-                                            <div class="progress-bar text-bg-danger" style="width: 75%"></div>
-                                        </div>
-                                    </div>
-                                    <!-- /.progress-group -->
-                                    <div class="progress-group">
-                                        <span class="progress-text">Visit Premium Page</span>
-                                        <span class="float-end"><b>480</b>/800</span>
-                                        <div class="progress progress-sm">
-                                            <div class="progress-bar text-bg-success" style="width: 60%"></div>
-                                        </div>
-                                    </div>
-                                    <!-- /.progress-group -->
-                                    <div class="progress-group">
-                                        Send Inquiries
-                                        <span class="float-end"><b>250</b>/500</span>
-                                        <div class="progress progress-sm">
-                                            <div class="progress-bar text-bg-warning" style="width: 50%"></div>
-                                        </div>
-                                    </div>
-                                    <!-- /.progress-group -->
-                                </div>
-                                <!-- /.col -->
-                            </div>
-                            <!--end::Row-->
-                        </div>
-                        <!-- ./card-body -->
-                        <div class="card-footer">
-                            <!--begin::Row-->
-                            <div class="row">
-                                <div class="col-md-3 col-6">
-                                    <div class="text-center border-end">
-                                        <span class="text-success">
-                                        <i class="bi bi-caret-up-fill"></i> 17%
-                                        </span>
-                                        <h5 class="fw-bold mb-0">$35,210.43</h5>
-                                        <span class="text-uppercase">TOTAL REVENUE</span>
-                                    </div>
-                                </div>
-                                <!-- /.col -->
-                                <div class="col-md-3 col-6">
-                                    <div class="text-center border-end">
-                                        <span class="text-info"> <i class="bi bi-caret-left-fill"></i> 0% </span>
-                                        <h5 class="fw-bold mb-0">$10,390.90</h5>
-                                        <span class="text-uppercase">TOTAL COST</span>
-                                    </div>
-                                </div>
-                                <!-- /.col -->
-                                <div class="col-md-3 col-6">
-                                    <div class="text-center border-end">
-                                        <span class="text-success">
-                                        <i class="bi bi-caret-up-fill"></i> 20%
-                                        </span>
-                                        <h5 class="fw-bold mb-0">$24,813.53</h5>
-                                        <span class="text-uppercase">TOTAL PROFIT</span>
-                                    </div>
-                                </div>
-                                <!-- /.col -->
-                                <div class="col-md-3 col-6">
-                                    <div class="text-center">
-                                        <span class="text-danger">
-                                        <i class="bi bi-caret-down-fill"></i> 18%
-                                        </span>
-                                        <h5 class="fw-bold mb-0">1200</h5>
-                                        <span class="text-uppercase">GOAL COMPLETIONS</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <!--end::Row-->
-                        </div>
-                        <!-- /.card-footer -->
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M10 3H4a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 
+                            00-1-1zM9 9H5V5h4vzm11-6h-6a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V4a1 1 0 
+                            00-1-1zm-1 6h-4V5h4v4zm-9 4H4a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1v-6a1 1 0 
+                            00-1-1zm-1 6H5v-4h4v4zm8-6c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0
+                            6c-1.103 0-2-.897-2-2s.897-2 2-2 2 .897 2 2-.897 2-2 2z"></path>
+                        </svg>
+                        <a href="{{ url('admin/categories') }}" class="small-box-footer link-light link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
                     </div>
-                    <!-- /.card -->
+                    <!--end::Small Box Widget 1-->
                 </div>
-                <!-- /.col -->
+                <!--end::Col-->
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 2-->
+                    <div class="small-box text-bg-success">
+                        <div class="inner">
+                            <h3>{{ $productsCount }}</h3>
+                            <p>Products</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 
+                            012-2zm0 1a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1H7zm1 2h8a1 1 0 
+                            011 1v8a1 1 0 01-1 1H8a1 1 0 01-1-1V9a1 1 0 011-1z"></path>
+                        </svg>
+                        <a href="{{ url('admin/products') }}" class="small-box-footer link-light link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 2-->
+                </div>
+                <!--end::Col-->
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 3-->
+                    <div class="small-box text-bg-warning">
+                        <div class="inner">
+                            <h3>{{ $brandsCount }}</h3>
+                            <p>Brands</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c.4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 
+                            8zm-5-8h10v2H7z"></path>
+                        </svg>
+                        <a href="{{ url('admin/brands') }}" class="small-box-footer link-dark link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 3-->
+                </div>
+                <!--end::Col-->
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 4-->
+                    <div class="small-box text-bg-danger">
+                        <div class="inner">
+                            <h3>{{ $usersCount }}</h3>
+                            <p>Users</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 2C6.579 2 2 6.579 2 12s4.579 10 10 10 10-4.579 
+                            10-10S17.421 2 12 2zm0 5c1.727 0 3 1.273 3 3s-1.273 3-3 3c-1.726 0-3-1.272-3-3s1.274-3 
+                            3-3zm0 12.2c-2.538 0-4.93-1.119-6.541-3.085C5.47 13.701 8.057 13 12 13c3.943 0 
+                            6.531.701 7.541 3.115-1.612 1.966-4.004 3.085-6.541 3.085z"></path>
+                        </svg>
+                        <a href="{{ url('admin/users') }}" class="small-box-footer link-light link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 4-->
+                </div>
+                <!--end::Col-->
             </div>
             <!--end::Row-->
+            <!--begin::Row-->
+            <div class="row">
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 1-->
+                    <div class="small-box text-bg-secondary">
+                        <div class="inner">
+                            <h3>{{ $ordersCount }}</h3>
+                            <p>Orders</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M20 4H4c-1.103 0-2 .897-2 2v12c0 1.103.897 2 2 2h16c1.103 0 
+                            2-.897 2-2V6c0-1.103-.897-2-2-2zm0 2v.511l-8 6.223-8-6.222V6h16zM4 18V9.044|7.386 
+                            5.745a.994.994 0 001.228 0L20 9.044 20.002 18H4z"></path>
+                        </svg>
+                        <a href="{{ url('admin/orders') }}" class="small-box-footer link-light link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 1-->
+                </div>
+                <!--end::Col-->
+                <!--begin::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 2-->
+                    <div class="small-box text-bg-info">
+                        <div class="inner">
+                            <h3>{{ $couponsCount }}</h3>
+                            <p>Coupons</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M21 5H3a1 1 0 00-1 1v4h.893c.996 0 1.92.681 2.08 1.664A2.001 
+                            01-1.973-2.336c.16-.983 1.084-1.664 2.08-1.664H22V6a1 1 0 00-1-1zM4 8.5a.5.5 0 11-1 
+                            0 .5.5 0 011 0zm1.5 5.5a.5.5 0 110-1 .5.5 0 010 1z"></path>
+                        </svg>
+                        <a href="{{ url('admin/coupons') }}" class="small-box-footer link-light link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 2-->
+                </div>
+                <!--end::Col-->
+                <div class="col-lg-3 col-6">
+                    <!--begin::Small Box Widget 3-->
+                    <div class="small-box text-bg-muted">
+                        <div class="inner">
+                            <h3>{{ $pagesCount }}</h3>
+                            <p>Pages</p>
+                        </div>
+                        <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M19 2H5a2 2 0 00-2 2v16a2 2 0 002 2h14a2 2 0 002-2V4a2 2 0 
+                            002-2-2zm0 18H5V4h14v16zM7 8h10v2H7z"></path>
+                        </svg>
+                        <a href="{{ url('admin/pages') }}" class="small-box-footer link-dark link-
+                        underline-opacity-0 link-underline-opacity-50-hover">
+                        More Info <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                    <!--end::Small Box Widget 3-->
+                    </div>
+                    <!--end::Col-->
+                    <div class="col-lg-3 col-6">
+                        <!--begin::Small Box Widget 4-->
+                        <div class="small-box text-bg-light">
+                            <div class="inner">
+                                <h3>{{ $enquiriesCount }}</h3>
+                                <p>Enquiries</p>
+                            </div>
+                            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M20 4H4c-1.103 0-2 .897-2 2v12c0 1.103.897 2 2 h16c1.103 0 
+                                2-.897 2-2V6c0-1.103-.897-2-2-2zm0 2v.511|-8 6.223-8-6.222V6h16zM4 18V9.044|7.383 
+                                5.745a.994.994 0 001.228 0L20 9.044 20.002 18H4z"></path>
+                            </svg>
+                            <a href="{{ url('admin/enquiries') }}" class="small-box-footer link-dark link-
+                            underline-opacity-0 link-underline-opacity-50-hover">
+                            More Info <i class="bi bi-link-45deg"></i>
+                            </a>
+                        </div>
+                        <!--end::Small Box Widget 4-->
+                    </div>
+                    <!--end::Col-->
+                </div>
+            </div>
         </div>
-        <!--end::Container-->
     </div>
-    <!--end::App Content-->
 </main>
 @endsection

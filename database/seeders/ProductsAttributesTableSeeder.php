@@ -17,8 +17,8 @@ class ProductsAttributesTableSeeder extends Seeder
             [
                 'product_id' => 1,
                 'size' => 'Small',
-                'sku' => 'ZS001-S',
-                'price' => 1500,
+                'sku' => 'MDB-S',
+                'price' => 4000,
                 'stock' => 10,
                 'sort' => 1,
                 'status' => 1,
@@ -26,8 +26,8 @@ class ProductsAttributesTableSeeder extends Seeder
             [
                 'product_id' => 1,
                 'size' => 'Medium',
-                'sku' => 'ZS001-M',
-                'price' => 1700,
+                'sku' => 'MDB-M',
+                'price' => 4500,
                 'stock' => 20,
                 'sort' => 2,
                 'status' => 1,
@@ -35,8 +35,8 @@ class ProductsAttributesTableSeeder extends Seeder
             [
                 'product_id' => 1,
                 'size' => 'Large',
-                'sku' => 'ZS001-L',
-                'price' => 1900,
+                'sku' => 'MDB-L',
+                'price' => 5000,
                 'stock' => 5,
                 'sort' => 3,
                 'status' => 1,

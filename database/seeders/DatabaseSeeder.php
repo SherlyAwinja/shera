@@ -26,5 +26,6 @@ class DatabaseSeeder extends Seeder
         $this->call([ColorTableSeeder::class]);
         $this->call([ProductsAttributesTableSeeder::class]);
         $this->call([BrandTableSeeder::class]);
+        $this->call([ProductsTableSeeder::class]);
     }
 }
