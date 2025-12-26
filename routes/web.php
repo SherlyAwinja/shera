@@ -1,18 +1,22 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Intervention\Image\ImageManager;
+use Illuminate\Support\Facades\Response;
+
+// Admin Controllers
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\BrandController;
-use Intervention\Image\ImageManager;
-use Illuminate\Support\Facades\Response;
+
+// Front Controllers
+use App\Http\Controllers\Front\IndexController;
 
 
-
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('welcome');
-});
+});*/
 
 Route::get('product-image/{size}/{filename}', function ($size, $filename) {
     $sizes = config('images_sizes.product');
@@ -132,4 +136,8 @@ Route::prefix('admin')->group(function () {
         // Logout Route
         Route::get('logout', [AdminController::class, 'destroy'])->name('admin.logout');
     });
+});
+
+Route::namespace('App\Http\Controllers\Front')->group(function () {
+    Route::get('/', [IndexController::class, 'index']);
 });
