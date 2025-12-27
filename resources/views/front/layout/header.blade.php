@@ -76,21 +76,37 @@
                 id="navbar-vertical" style="width: calc(100% - 30px); z-index: 9;">
                 <div class="navbar-nav w-100">
                     <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Clothing <i class="fa fa-angle-down float-right mt-1"></i></a>
+                        <a href="#" class="nav-link" data-toggle="dropdown">Handbags <i class="fa fa-angle-down float-right mt-1"></i></a>
                         <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Men</a>
-                            <a href="" class="dropdown-item">Women</a>
-                            <a href="" class="dropdown-item">Kids</a>
+                            <a href="" class="dropdown-item">Tote Bags</a>
+                            <a href="" class="dropdown-item">Shoulder Bags</a>
                         </div>
                     </div>
                     <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Electronics <i class="fa fa-angle-down float-right mt-1"></i></a>
+                        <a href="#" class="nav-link" data-toggle="dropdown">Travel Bags <i class="fa fa-angle-down float-right mt-1"></i></a>
                         <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Laptops</a>
-                            <a href="" class="dropdown-item">Mobiles</a>
+                            <a href="" class="dropdown-item">Duffel Bags</a>
+                            <a href="" class="dropdown-item">Carry-on Bags</a>
+                            <a href="" class="dropdown-item">Backpacks</a>
+                            <a href="" class="dropdown-item">Travel Wallets</a>
                         </div>
                     </div>
-                    <a href="" class="nav-item nav-link">Appliances</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link" data-toggle="dropdown">Gym Bags <i class="fa fa-angle-down float-right mt-1"></i></a>
+                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
+                            <a href="" class="dropdown-item">Gym Duffel Bags</a>
+                            <a href="" class="dropdown-item">Yoga Bags</a>
+                            <a href="" class="dropdown-item">Gym Backpacks</a>
+                        </div>
+                    </div>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link" data-toggle="dropdown">Organizers <i class="fa fa-angle-down float-right mt-1"></i></a>
+                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
+                            <a href="" class="dropdown-item">Lunch Bags</a>
+                            <a href="" class="dropdown-item">Makeup Bags</a>
+                        </div>
+                    </div>
+                    <a href="" class="nav-item nav-link">Gift Bundles</a>
                 </div>
             </nav>
         </div>
@@ -110,15 +126,37 @@
                     <div class="navbar-nav mr-auto py-0">
                         <a href="index.html" class="nav-item nav-link">Home</a>
                         <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Clothing</a>
+                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Handbags</a>
                             <div class="dropdown-menu rounded-0 m-0">
-                                <a href="#" class="dropdown-item">Men</a>
-                                <a href="#" class="dropdown-item">Women</a>
-                                <a href="#" class="dropdown-item">Kids</a>
+                                <a href="#" class="dropdown-item">Tote Bags</a>
+                                <a href="#" class="dropdown-item">Shoulder Bags</a>
                             </div>
                         </div>
-                        <a href="#" class="nav-item nav-link">Electronics</a>
-                        <a href="#" class="nav-item nav-link">Appliances</a>
+                        <div class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Travel Bags</a>
+                            <div class="dropdown-menu rounded-0 m-0">
+                                <a href="#" class="dropdown-item">Duffel Bags</a>
+                                <a href="#" class="dropdown-item">Carry-on Bags</a>
+                                <a href="#" class="dropdown-item">Backpacks</a>
+                                <a href="#" class="dropdown-item">Travel Wallets</a>
+                            </div>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Gym Bags</a>
+                            <div class="dropdown-menu rounded-0 m-0">
+                                <a href="#" class="dropdown-item">Gym Duffel Bags</a>
+                                <a href="#" class="dropdown-item">Yoga Bags</a>
+                                <a href="#" class="dropdown-item">Gym Backpacks</a>
+                            </div>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Organizers</a>
+                            <div class="dropdown-menu rounded-0 m-0">
+                                <a href="#" class="dropdown-item">Lunch Bags</a>
+                                <a href="#" class="dropdown-item">Makeup Bags</a>
+                            </div>
+                        </div>
+                        <a href="#" class="nav-item nav-link">Gift Bundles</a>
                         <a href="contact.html" class="nav-item nav-link">Contact</a>
                     </div>
                     <div class="navbar-nav ml-auto py-0">

@@ -25,10 +25,10 @@
                 <div class="col-md-4 mb-5">
                     <h5 class="font-weight-bold text-dark mb-4">Collection</h5>
                     <div class="d-flex flex-column justify-content-start">
-                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Clothing</a>
-                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Electronics</a>
-                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Appliances</a>
-                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Accessories</a>
+                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Handbags</a>
+                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Travel bags</a>
+                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Gym Bags</a>
+                        <a class="text-dark mb-2" href="listing.html"><i class="fa fa-angle-right mr-2"></i>Organizers</a>
                     </div>
                 </div>
                 <div class="col-md-4 mb-5">

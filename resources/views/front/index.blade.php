@@ -68,7 +68,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Men</h5>
+                <h5 class="font-weight-semi-bold m-0">Tote Bags</h5>
             </div>
         </div>
         <div class="col-lg-4 col-md-6 pb-1">
@@ -77,7 +77,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Women</h5>
+                <h5 class="font-weight-semi-bold m-0">Shoulder Bags</h5>
             </div>
         </div>
         <div class="col-lg-4 col-md-6 pb-1">
@@ -86,7 +86,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Kids</h5>
+                <h5 class="font-weight-semi-bold m-0">Duffel Bags</h5>
             </div>
         </div>
         <div class="col-lg-4 col-md-6 pb-1">
@@ -95,7 +95,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Electronics</h5>
+                <h5 class="font-weight-semi-bold m-0">Carry-on Bags</h5>
             </div>
         </div>
         <div class="col-lg-4 col-md-6 pb-1">
@@ -104,7 +104,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Appliances</h5>
+                <h5 class="font-weight-semi-bold m-0">Backpacks</h5>
             </div>
         </div>
         <div class="col-lg-4 col-md-6 pb-1">
@@ -113,7 +113,7 @@
                 <a href="" class="cat-img position-relative overflow-hidden mb-3">
                     <img class="img-fluid" src="{{ asset('front/images/sitemakers1.png') }}" alt="">
                 </a>
-                <h5 class="font-weight-semi-bold m-0">Accessories</h5>
+                <h5 class="font-weight-semi-bold m-0">Travel Wallets</h5>
             </div>
         </div>
     </div>
