@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\BannerController;
 
 // Front Controllers
 use App\Http\Controllers\Front\IndexController;
@@ -36,7 +37,7 @@ Route::get('product-image/{size}/{filename}', function ($size, $filename) {
     });
     $binary = $image->toJpeg(85); // Compression with 85% quality
     return Response::make($binary)->header('Content-Type', 'image/jpeg');
-    
+
 });
 
 
@@ -93,7 +94,7 @@ Route::prefix('admin')->group(function () {
         Route::resource('products', ProductController::class);
         // Update Product Status Route
         Route::post('update-product-status', [ProductController::class, 'updateProductStatus']);
-        
+
         // Upload Product Image Route
         Route::post('/product/upload-image', [ProductController::class, 'uploadImage'])->name('product.upload.image');
         // Upload Product Images Route
@@ -133,7 +134,12 @@ Route::prefix('admin')->group(function () {
         // Delete Brand Image Route
         Route::post('delete-brand-image', [BrandController::class, 'deleteBrandImage']);
 
-        // Logout Route
+        // Banners Route
+        Route::resource('banners', BannerController::class);
+        // Update Banner Status Route
+        Route::post('update-banner-status', [BannerController::class, 'updateBannerStatus']);
+
+        // Admin Logout Route
         Route::get('logout', [AdminController::class, 'destroy'])->name('admin.logout');
     });
 });

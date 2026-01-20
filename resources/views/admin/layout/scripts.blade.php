@@ -48,16 +48,16 @@
     // NOTICE!! DO NOT USE ANY OF THIS JAVASCRIPT
     // IT'S ALL JUST JUNK FOR DEMO
     // ++++++++++++++++++++++++++++++++++++++++++
-    
+
     /* apexcharts
      * -------
      * Here we will create a few charts using apexcharts
      */
-    
+
     //-----------------------
     // - MONTHLY SALES CHART -
     //-----------------------
-    
+
     const sales_chart_options = {
       series: [
         {
@@ -104,17 +104,17 @@
         },
       },
     };
-    
+
     const sales_chart = new ApexCharts(
       document.querySelector('#sales-chart'),
       sales_chart_options,
     );
     sales_chart.render();
-    
+
     //---------------------------
     // - END MONTHLY SALES CHART -
     //---------------------------
-    
+
     function createSparklineChart(selector, data) {
       const options = {
         series: [{ data }],
@@ -149,11 +149,11 @@
           },
         },
       };
-    
+
       const chart = new ApexCharts(document.querySelector(selector), options);
       chart.render();
     }
-    
+
     const table_sparkline_1_data = [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54];
     const table_sparkline_2_data = [12, 56, 21, 39, 73, 45, 64, 52, 36, 59, 44];
     const table_sparkline_3_data = [15, 46, 21, 59, 33, 15, 34, 42, 56, 19, 64];
@@ -161,7 +161,7 @@
     const table_sparkline_5_data = [20, 76, 51, 79, 53, 35, 54, 22, 36, 49, 64];
     const table_sparkline_6_data = [5, 36, 11, 69, 23, 15, 14, 42, 26, 19, 44];
     const table_sparkline_7_data = [12, 56, 21, 39, 73, 45, 64, 52, 36, 59, 74];
-    
+
     createSparklineChart('#table-sparkline-1', table_sparkline_1_data);
     createSparklineChart('#table-sparkline-2', table_sparkline_2_data);
     createSparklineChart('#table-sparkline-3', table_sparkline_3_data);
@@ -169,11 +169,11 @@
     createSparklineChart('#table-sparkline-5', table_sparkline_5_data);
     createSparklineChart('#table-sparkline-6', table_sparkline_6_data);
     createSparklineChart('#table-sparkline-7', table_sparkline_7_data);
-    
+
     //-------------
     // - PIE CHART -
     //-------------
-    
+
     const pie_chart_options = {
       series: [700, 500, 400, 600, 300, 100],
       chart: {
@@ -185,10 +185,10 @@
       },
       colors: ['#0d6efd', '#20c997', '#ffc107', '#d63384', '#6f42c1', '#adb5bd'],
     };
-    
+
     const pie_chart = new ApexCharts(document.querySelector('#pie-chart'), pie_chart_options);
     pie_chart.render();
-    
+
     //-----------------
     // - END PIE CHART -
     //-----------------
@@ -228,7 +228,7 @@
     $(document).ready(function() {
       $("#subadmins").DataTable();
       $("#brands").DataTable();
-      
+
       const tableConfig = [
         {
           id: "categories",
@@ -327,7 +327,7 @@
   Dropzone.autoDiscover = false;
 
   $(document).ready(function() {
-    
+
     // Main Image Dropzone - only initialize if element exists
     if ($("#mainImageDropzone").length > 0) {
       console.log("Initializing main image dropzone...");
@@ -500,7 +500,7 @@
     } else {
       console.log("Product video dropzone element not found");
     }
-    
+
     // Product Image Sort Script - only initialize if element exists
     if ($("#sortable-images").length > 0) {
       $("#sortable-images").sortable({
@@ -528,6 +528,17 @@
       }
     });
     }
-    
+
   }); // End of $(document).ready
+</script>
+
+<script>
+    // Iniatialize submenu functionality
+    $(document).ready(function(){
+      $('.dropdown-submenu a.test').on("click", function(e){
+        $(this).next('ul').toggle();
+        e.stopPropagation();
+        e.preventDefault();
+      });
+    });
 </script>

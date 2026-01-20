@@ -1,3 +1,10 @@
+<?php
+Use App\Models\Category;
+// Get Categories and their sub categories
+$categories = Category::getCategories('Front');
+/*echo "<pre>"; print_r($categories);die;*/
+?>
+
 <!-- Topbar Start -->
 <div class="container-fluid">
     <div class="row bg-secondary py-2 px-xl-5">
@@ -75,38 +82,27 @@
             <nav class="collapse position-absolute navbar navbar-vertical navbar-light align-items-start p-0 border border-top-0 border-bottom-0 bg-light"
                 id="navbar-vertical" style="width: calc(100% - 30px); z-index: 9;">
                 <div class="navbar-nav w-100">
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Handbags <i class="fa fa-angle-down float-right mt-1"></i></a>
-                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Tote Bags</a>
-                            <a href="" class="dropdown-item">Shoulder Bags</a>
-                        </div>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Travel Bags <i class="fa fa-angle-down float-right mt-1"></i></a>
-                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Duffel Bags</a>
-                            <a href="" class="dropdown-item">Carry-on Bags</a>
-                            <a href="" class="dropdown-item">Backpacks</a>
-                            <a href="" class="dropdown-item">Travel Wallets</a>
-                        </div>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Gym Bags <i class="fa fa-angle-down float-right mt-1"></i></a>
-                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Gym Duffel Bags</a>
-                            <a href="" class="dropdown-item">Yoga Bags</a>
-                            <a href="" class="dropdown-item">Gym Backpacks</a>
-                        </div>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link" data-toggle="dropdown">Organizers <i class="fa fa-angle-down float-right mt-1"></i></a>
-                        <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
-                            <a href="" class="dropdown-item">Lunch Bags</a>
-                            <a href="" class="dropdown-item">Makeup Bags</a>
-                        </div>
-                    </div>
-                    <a href="" class="nav-item nav-link">Gift Bundles</a>
+                    @foreach($categories as $category)
+                        @if($category['menu_status'] == 1)
+                            @if(count($category['subcategories'])>0)
+                                <div class="nav-item dropdown">
+                                    <a href="{{url($category['url'])}}" class="nav-link" data-toggle="dropdown">
+                                        {{$category['name']}} <i class="fa fa-angle-down float-right mt-1"></i>
+                                    </a>
+                                    <div class="dropdown-menu position-absolute bg-secondary border-0 rounded-0 w-100 m-0">
+                                        @foreach($category['subcategories'] as $subcategory)
+                                            @if($subcategory['menu_status']== 1)
+                                                <a href="{{url($subcategory['url'])}}" class="dropdown-item">{{$subcategory['name']}}</a>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <a href="{{url($category['url'])}}" class="nav-item nav-link">
+                                {{$category['name']}}</a>
+                            @endif
+                        @endif
+                    @endforeach
                 </div>
             </nav>
         </div>
@@ -125,39 +121,49 @@
                 <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
                     <div class="navbar-nav mr-auto py-0">
                         <a href="index.html" class="nav-item nav-link">Home</a>
-                        <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Handbags</a>
-                            <div class="dropdown-menu rounded-0 m-0">
-                                <a href="#" class="dropdown-item">Tote Bags</a>
-                                <a href="#" class="dropdown-item">Shoulder Bags</a>
-                            </div>
-                        </div>
-                        <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Travel Bags</a>
-                            <div class="dropdown-menu rounded-0 m-0">
-                                <a href="#" class="dropdown-item">Duffel Bags</a>
-                                <a href="#" class="dropdown-item">Carry-on Bags</a>
-                                <a href="#" class="dropdown-item">Backpacks</a>
-                                <a href="#" class="dropdown-item">Travel Wallets</a>
-                            </div>
-                        </div>
-                        <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Gym Bags</a>
-                            <div class="dropdown-menu rounded-0 m-0">
-                                <a href="#" class="dropdown-item">Gym Duffel Bags</a>
-                                <a href="#" class="dropdown-item">Yoga Bags</a>
-                                <a href="#" class="dropdown-item">Gym Backpacks</a>
-                            </div>
-                        </div>
-                        <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Organizers</a>
-                            <div class="dropdown-menu rounded-0 m-0">
-                                <a href="#" class="dropdown-item">Lunch Bags</a>
-                                <a href="#" class="dropdown-item">Makeup Bags</a>
-                            </div>
-                        </div>
-                        <a href="#" class="nav-item nav-link">Gift Bundles</a>
-                        <a href="contact.html" class="nav-item nav-link">Contact</a>
+                            @foreach($categories as $category)
+                                @if($category['menu_status'] == 1)
+                                    @if(count($category['subcategories'])>0)
+                                    <div class="nav-item dropdown">
+                                        <a href="{{url($category['url'])}}" class="nav-link dropdown-toggle" data-toggle="dropdown">
+                                            {{$category['name']}}
+                                        </a>
+                                        <div class="dropdown-menu rounded-0 m-0">
+                                            @foreach($category['subcategories'] as $subcategory)
+                                                @if($subcategory['menu_status']== 1)
+                                                    @if(isset($subcategory['subsubcategories']) && count($subcategory['subsubcategories'])>0)
+                                                    <div class="dropdown-submenu">
+                                                        <a href="{{url($subcategory['url'])}}" class="dropdown-item">
+                                                            {{$subcategory['name']}}
+                                                            <i class="fa fa-angle-right float-right mt-1"></i>
+                                                        </a>
+                                                        <div class="dropdown-menu">
+                                                            @foreach($subcategory['subsubcategories'] as $subsubcategory)
+                                                                @if($subsubcategory['menu_status']== 1)
+                                                                    <a href="{{url($subsubcategory['url'])}}" class="dropdown-item">
+                                                                        {{$subsubcategory['name']}}
+                                                                    </a>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                    @else
+                                                    <a href="{{url($subcategory['url'])}}" class="dropdown-item">
+                                                        {{$subcategory['name']}}
+                                                    </a>
+                                                    @endif
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @else
+                                    <a href="{{url($category['url'])}}" class="nav-item nav-link">
+                                        {{$category['name']}}
+                                    </a>
+                                    @endif
+                                @endif
+                            @endforeach
+                        <a href="contact.html" class="nav-item nav-link">Contact Us</a>
                     </div>
                     <div class="navbar-nav ml-auto py-0">
                         <a href="" class="nav-item nav-link">Login</a>
