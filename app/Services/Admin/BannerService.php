@@ -16,7 +16,7 @@ class BannerService
     public function banners()
     {
         $admin=Auth::guard('admin')->user();
-        $banners=Banner::orderBy('sort','asc')->get();
+        $banners= Banner::orderBy('sort','asc')->get();
         $bannersModuleCount=AdminsRole::where([
             'subadmin_id'=>$admin->id,
             'module'=>'banners'
@@ -57,6 +57,44 @@ class BannerService
         $status = ($data['status'] == 'Active') ? 0 : 1;
         Banner::where('id', $data['banner_id'])->update(['status' => $status]);
         return $status;
+    }
+
+    /**
+     * Add or Edit a Banner
+     */
+    public function addEditBanner($request)
+    {
+        $data = $request->all();
+
+        $banner = isset($data['id']) ? Banner::find($data['id']) : new Banner();
+
+        $banner->type = $request->type;
+        $banner->link = $request->link;
+        $banner->title = $request->title;
+        $banner->alt = $request->alt;
+        $banner->sort = $request->sort;
+        $banner->status = $request->status;
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $path = 'front/images/banners/';
+            if (!File::exists(public_path($path))) {
+                File::makeDirectory(public_path($path), 0755, true);
+            }
+
+            // Delete old image if editing
+            if (!empty($banner->image) && File::exists(public_path($path . $banner->image))) {
+                File::delete(public_path($path . $banner->image));
+            }
+
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $image->move(public_path($path), $imageName);
+            $banner->image = $imageName;
+        }
+
+        $banner->save();
+        return isset($data['id']) ? 'Banner updated successfully!' : 'Banner added successfully!';
     }
 
     /**

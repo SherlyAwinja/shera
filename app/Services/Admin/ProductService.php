@@ -91,7 +91,8 @@ class ProductService
         $product->product_gst = $data['product_gst'] ?? 0;
         $product->dimensions = !empty($data['product_dimensions']) ? $data['product_dimensions'] : null;
         $product->is_featured = $data['is_featured'] ?? 'No';
-        
+        $product->sort = $data['sort'] ?? 0;
+
 
         // Calculate discount & final price
         if(!empty($data['product_discount']) && $data['product_discount'] > 0) {
@@ -164,8 +165,8 @@ class ProductService
         // NOTE: Frontend stores uploaded filenames in hidden field: product_images_hidden
         if(!empty($data['product_images_hidden'])) {
             // Ensure we have an array
-            $imageFiles = is_array($data['product_images_hidden']) 
-                ? $data['product_images_hidden'] 
+            $imageFiles = is_array($data['product_images_hidden'])
+                ? $data['product_images_hidden']
                 : explode(',', $data['product_images_hidden']);
 
             // Remove any empty values
@@ -366,7 +367,7 @@ class ProductService
         if (file_exists($product_video_path)) {
             unlink($product_video_path);
         }
-        
+
         // Delete Product Video from product table
         Product::where('id', $id)->update(['product_video' => null]);
 

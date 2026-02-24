@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\BannerController;
 
 // Front Controllers
 use App\Http\Controllers\Front\IndexController;
+use App\Http\Controllers\Front\ProductController as ProductFrontController;
+use App\Models\Category;
 
 
 /*Route::get('/', function () {
@@ -146,4 +148,9 @@ Route::prefix('admin')->group(function () {
 
 Route::namespace('App\Http\Controllers\Front')->group(function () {
     Route::get('/', [IndexController::class, 'index']);
+
+    $catUrls = Category::where('status', 1)->pluck('url')->toArray();
+    foreach ($catUrls as $url) {
+        Route::get("/$url",[ProductFrontController::class, 'index']);
+    }
 });

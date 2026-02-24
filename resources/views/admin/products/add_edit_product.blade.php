@@ -144,11 +144,11 @@
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[length]" placeholder="Length (L)"
                                            value="{{ old('product_dimensions[length]', isset($product) && isset($product->product_dimensions['length']) ? $product->product_dimensions['length'] : '') }}">
-                            
+
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[width]" placeholder="Width (W)"
                                            value="{{ old('product_dimensions[width]', isset($product) && isset($product->product_dimensions['width']) ? $product->product_dimensions['width'] : '') }}">
-                            
+
                                     <input type="number" step="0.01" class="form-control"
                                            name="product_dimensions[height]" placeholder="Height (H)"
                                            value="{{ old('product_dimensions[height]', isset($product) && isset($product->product_dimensions['height']) ? $product->product_dimensions['height'] : '') }}">
@@ -166,7 +166,7 @@
                                     <div class="flex-fill col-2 ms-4">Sort</div>
                                     <div style="width: 60px"></div>
                                 </div>
-                                
+
                                 {{-- dynamic rows --}}
                                 <div class="field_wrapper">
                                     {{-- first row --}}
@@ -183,7 +183,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             @if(isset($product['attributes']) && count($product['attributes']) > 0)
                             <div class="mb-3">
                                 <label class="form-label mb-1">Existing Product Attributes</label>
@@ -231,12 +231,12 @@
                                             </tr>
                                             @endforeach
                                         </tbody>
-                                            
+
                                     </table>
                                 </div>
                             </div>
                             @endif
-                            
+
                             <div class="mb-3">
                                 <label class="form-label" for="main_image_dropzone">Product Main Image(Max 500KB)</label>
                                 <div class="dropzone" id="mainImageDropzone"></div>
@@ -248,7 +248,7 @@
                                     <p class="mb-2"><strong>Current Main Image:</strong></p>
                                     <div class="d-inline-block position-relative">
                                         <a target="_blank" href="{{ url('front/images/products/'.$product['main_image']) }}" title="Click to view full size">
-                                            <img src="{{ url('product-image/thumbnail/'.$product->main_image) }}" 
+                                            <img src="{{ url('product-image/thumbnail/'.$product->main_image) }}"
                                             style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                                         </a>
                                         <a style='color:#dc3545'; class="confirmDelete" title="Delete Product Image" href="javascript:void(0)" data-module="product-main-image" data-id="{{ $product['id'] }}"
@@ -258,7 +258,7 @@
                                     </div>
                                 </div>
                                 @endif
-                                
+
                             </div>
                             <div id="mainImageDropzoneError" style="color: red; display: none;"></div>
 
@@ -281,12 +281,12 @@
                                         @foreach($product->product_images as $img)
                                         <div class="sortable-item position-relative" data-id="{{ $img->id }}" style="margin-bottom: 10px;">
                                             <a target="_blank" href="{{ url('front/images/products/'.$img->image) }}" title="Click to view full size">
-                                                <img src="{{ url('product-image/thumbnail/'.$img->image) }}" 
+                                                <img src="{{ url('product-image/thumbnail/'.$img->image) }}"
                                                 style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                                             </a>
-                                            <a href="javascript:void(0)" class="confirmDelete text-danger" 
-                                               data-module="product-image" 
-                                               data-id="{{ $img->id }}" 
+                                            <a href="javascript:void(0)" class="confirmDelete text-danger"
+                                               data-module="product-image"
+                                               data-id="{{ $img->id }}"
                                                data-image="{{ $img->image }}"
                                                title="Delete Image"
                                                style="position: absolute; top: -5px; right: -5px; background: white; border-radius: 50%; padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -342,6 +342,11 @@
                             <div class="mb-3">
                                 <label class="form-label" for="meta_keywords">Meta Keywords</label>
                                 <input type="text" class="form-control" name="meta_keywords" value="{{ old('meta_keywords', $product->meta_keywords ?? '') }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="sort">Sort</label>
+                                <input type="number" class="form-control" name="sort" value="{{ old('sort', $product->sort ?? '') }}">
                             </div>
 
                             <div class="mb-3">
