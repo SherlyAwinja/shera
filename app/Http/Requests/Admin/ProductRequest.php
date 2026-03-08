@@ -29,6 +29,9 @@ class ProductRequest extends FormRequest
             'product_price' => 'required|numeric|gt:0',
             'product_color' => 'required|max:200',
             'family_color' => 'required|max:200',
+            'gender' => 'required|in:men,women,unisex,kids',
+            'occasion' => 'required|array|min:1',
+            'occasion.*' => 'in:work,cassual,travel,gym',
         ];
     }
 
@@ -42,6 +45,12 @@ class ProductRequest extends FormRequest
             'product_price.numeric' => 'Valid product price is required.',
             'product_color.required' => 'Product color is required.',
             'family_color.required' => 'Family color is required.',
+            'gender.required' => 'Gender is required.',
+            'gender.in' => 'Please select a valid gender option.',
+            'occasion.required' => 'Occasion is required.',
+            'occasion.array' => 'Please select at least one valid occasion.',
+            'occasion.min' => 'Please select at least one occasion.',
+            'occasion.*.in' => 'Please select a valid occasion option.',
         ];
     }
 }

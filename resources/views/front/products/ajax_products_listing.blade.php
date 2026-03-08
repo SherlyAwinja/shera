@@ -9,7 +9,7 @@
             <div class = "mb-3">
                 {!! $breadcrumbs ?? '' !!}
                 <div class = "small text-muted">
-                    (FOUND {{ count($categoryProducts)}} RESULTS)
+                    (FOUND {{ $categoryProducts->total() }} RESULTS)
                 </div>
             </div>
         </div>
@@ -18,14 +18,14 @@
         <div class="col-12 pb-1">
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <form action="">
-                    <div class="input-group">
+                    <!-- <div class="input-group">
                         <input type="text" class="form-control" placeholder="Search by name">
                         <div class="input-group-append">
                             <span class="input-group-text bg-transparent text-primary">
                             <i class="fa fa-search"></i>
                             </span>
                         </div>
-                    </div>
+                    </div> -->
                 </form>
                 <form name="sortProducts" id="sortProducts">
                     <input type="hidden" name="url" id="url" value="{{ $url }}">
@@ -48,43 +48,39 @@
 
                 if (!empty($product['main_image'])) {
                     $image = asset('product-image/medium/'.$product['main_image']);
-                } elseif (!empty($product['images'][0]['image'])) {
-                    $image = asset('product-image/medium/'.$product['images'][0]['image']);
+                } elseif (!empty($product['product_images'][0]['image'])) {
+                    $image = asset('product-image/medium/'.$product['product_images'][0]['image']);
                 } else {
                     $image = $fallbackImage;
                 }
             @endphp
-        <div class="col-lg-4 col-md-6 col-sm-12 pb-1">
-            <div class="card product-item border-0 mb-4">
-                <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
-                    <a href="#"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
+        <div class="col-lg-4 col-md-6 col-12 pb-4 product-grid-col">
+            <div class="card product-item border-0 mb-0 product-grid-card w-100">
+                <div class="card-header product-img product-grid-media position-relative overflow-hidden bg-transparent border p-0">
+                    <a href="#"><img class="img-fluid w-100 product-grid-image" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
-                <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
-                    <h6 class="text-truncate mb-3">{{ $product['product_name'] }}</h6>
-                    <div class="d-flex justify-content-center">
-                        <h6>KSH.{{ $product['final_price'] }}</h6>
-                        @if($product['product_dicount'] > 0)
-                            <h6 class="text-muted ml-2"><del>KSH.{{ $product['product_price'] }}</del></h6>
+                <div class="card-body border-left border-right text-center p-0 pt-4 pb-3 product-grid-body">
+                    <h6 class="text-truncate mb-3 product-title">{{ $product['product_name'] }}</h6>
+                    <div class="d-flex justify-content-center align-items-center product-price-wrap">
+                        <h6 class="mb-0 product-price">KSH {{ number_format($product['final_price']) }}</h6>
+                        @if($product['product_discount'] > 0)
+                            <h6 class="text-muted ml-2 mb-0 product-old-price"><del>KSH {{ number_format($product['product_price']) }}</del></h6>
                         @endif
                     </div>
                 </div>
-                <div class="card-footer d-flex justify-content-between bg-light border">
-                    <a href="#" class="btn btn-sm text-dark p-0">
-                        <i class="fas fa-eye text-primary mr-1"></i>View Detail
+                <div class="card-footer d-flex justify-content-between bg-light border product-grid-footer">
+                    <a href="#" class="btn btn-sm p-0 product-view-link">
+                        <i class="fas fa-eye mr-1 product-card-icon"></i>View Detail
                     </a>
-                    <a href="javascript:void(0)" class="btn btn-sm text-dark p-0 addToCartBtn" data-id="{{ $product['id'] }}">
-                        <i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart
+                    <a href="javascript:void(0)" class="btn btn-sm btn-primary p-0 addToCartBtn product-add-cart-btn" data-id="{{ $product['id'] }}">
+                        <i class="fas fa-shopping-cart mr-1 product-card-icon"></i>Add To Cart
                     </a>
                 </div>
             </div>
         </div>
         @endforeach
-        <div class="col-12 pb-1">
-            @if(request()->has('sort'))
-                {{ $categoryProducts->appends(['sort' => request()->get('sort')])->links('pagination::bootstrap-4') }}
-            @else
-                {{ $categoryProducts->links('pagination::bootstrap-4') }}
-            @endif
+        <div class = "col-12 pb-1">
+            {{ $categoryProducts->appends(request()->except(['json', 'page']))->links('pagination::bootstrap-4') }}
         </div>
     </div>
 </div>

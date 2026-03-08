@@ -13,7 +13,7 @@ use App\Http\Requests\Admin\PasswordRequest;
 use App\Http\Requests\Admin\DetailRequest;
 use App\Http\Requests\Admin\SubadminRequest;
 use App\Models\AdminsRole;
-use App\Models\ColumnPrefence;
+use App\Models\ColumnPreference;
 
 
 class AdminController extends Controller
@@ -42,13 +42,13 @@ class AdminController extends Controller
         $pagesCount = 0;
         $enquiriesCount = 0;
         return view('admin.dashboard')->with(compact(
-            'categoriesCount', 
-            'productsCount', 
-            'brandsCount', 
-            'usersCount', 
-            'couponsCount', 
-            'ordersCount', 
-            'pagesCount', 
+            'categoriesCount',
+            'productsCount',
+            'brandsCount',
+            'usersCount',
+            'couponsCount',
+            'ordersCount',
+            'pagesCount',
             'enquiriesCount'
         ));
     }
@@ -103,7 +103,7 @@ class AdminController extends Controller
     {
         $data = $request->all();
         $result = $this->adminService->updatePassword($data);
-        
+
         if ($result['status']) {
             return redirect()->back()->with('success_message', $result['message']);
         } else {
@@ -206,7 +206,7 @@ class AdminController extends Controller
     {
         $subadminRoles = AdminsRole::where('subadmin_id', $id)->get()->toArray();
         $subadminDetails = Admin::where('id', $id)->first()->toArray();
-        $modules = ['categories', 'products', 'orders', 'users', 'subscribers'];
+        $modules = ['categories', 'products', 'orders', 'users', 'subscribers', 'filters', 'filters_values'];
         $title = "Update ".$subadminDetails['name']." Subadmin Roles/Permissions";
         return view('admin.subadmins.update_roles')->with(compact('title', 'id', 'subadminRoles', 'modules'));
     }
@@ -228,7 +228,7 @@ class AdminController extends Controller
         if (!$tableName) {
             return response()->json(['status' => 'error', 'message' => 'Table key is required'],400);
         }
-        ColumnPrefence::updateOrCreate(
+        ColumnPreference::updateOrCreate(
             ['admin_id' => $userId, 'table_name' => $tableName],
             ['column_order' => json_encode($request->column_order)]
         );
@@ -242,7 +242,7 @@ class AdminController extends Controller
         if (!$tableName) {
             return response()->json(['status' => 'error', 'message' => 'Table key is required'],400);
         }
-        ColumnPrefence::updateOrCreate(
+        ColumnPreference::updateOrCreate(
             ['admin_id' => $userId, 'table_name' => $tableName],
             [
                 'column_order' => json_encode($request->column_order),

@@ -32,7 +32,7 @@
                         </div>
                         <div class="card-body">
                             @if (Session::has('success_message'))
-                            <div class="alert alert-success alert-dismissible fade show mx-1 my-3" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <strong>Success!</strong> {{ Session::get('success_message') }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
@@ -56,25 +56,24 @@
                                             <td>{{ $brand->created_at->format('F j, Y, g:i a') }}</td>
                                             <td>
                                                 @if($brandsModule['edit_access'] == 1 || $brandsModule['full_access'] == 1)
-                                                <!-- Actions (Enable/Disable, Edit, Delete) will be added here -->
-                                                    @if($brand->status == 1)
-                                                    <a class="updateBrandStatus" data-brand_id="{{ $brand->id }}" style="color:#3f6ed3;" href="javascript:void(0)"><i class="fas fa-toggle-on" data-status="Active"></i></a>
-                                                    @else
-                                                    <a class="updateBrandStatus" data-brand_id="{{ $brand->id }}" style="color:grey;" href="javascript:void(0)"><i class="fas fa-toggle-off" data-status="Inactive"></i></a>
-                                                    @endif
-                                                    @if($brandsModule['edit_access'] == 1 || $brandsModule['full_access'] == 1)
-                                                    &nbsp;&nbsp;
-                                                    <a href="{{ url('admin/brands/'.$brand->id.'/edit') }}"><i class="fas fa-edit"></i></a>
-                                                    &nbsp;&nbsp;
-                                                    @endif
-                                                    @if($brandsModule['full_access'] == 1)
-                                                    <form action="{{ route('brands.destroy', $brand->id) }}" method="POST" style="display:inline-block;">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button class="confirmDelete" name="Brand" data-module="brand" data-id="{{ $brand->id }}" type="button" style="border:none; background:none;color:#3f6ed3;" href="javascript:void(0)" title="Delete Brand"><i class="fas fa-trash"></i></button>
-                                                    </form>
-                                                    @endif
+                                                @if($brand->status == 1)
+                                                <a class="updateBrandStatus" data-brand_id="{{ $brand->id }}" style="color:#3f6ed3;" href="javascript:void(0)"><i class="fas fa-toggle-on" data-status="Active"></i></a>
+                                                @else
+                                                <a class="updateBrandStatus" data-brand_id="{{ $brand->id }}" style="color:grey;" href="javascript:void(0)"><i class="fas fa-toggle-off" data-status="Inactive"></i></a>
                                                 @endif
+                                                @if($brandsModule['edit_access'] == 1 || $brandsModule['full_access'] == 1)
+                                                &nbsp;&nbsp;
+                                                <a href="{{ url('admin/brands/'.$brand->id.'/edit') }}"><i class="fas fa-edit"></i></a>
+                                                &nbsp;&nbsp;
+                                                @endif
+                                                @if($brandsModule['full_access'] == 1)
+                                                <form action="{{ route('brands.destroy', $brand->id) }}" method="POST" style="display:inline-block;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="confirmDelete" name="Brand" data-module="brand" data-id="{{ $brand->id }}" type="button" style="border:none; background:none;color:#3f6ed3;" href="javascript:void(0)" title="Delete Brand"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                                @endif
+                                            @endif
                                             </td>
                                         </tr>
                                     @endforeach

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\Admin\BannerRequest;
 use App\Services\Admin\BannerService;
 use App\Models\Banner;
-use App\Models\ColumnPrefence;
+use App\Models\ColumnPreference;
 use App\Models\AdminsRole;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +35,7 @@ class BannerController extends Controller
         $banners = $result['banners'];
         $bannersModule = $result['bannersModule'];
 
-        $columnPreference = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())
+        $columnPreference = ColumnPreference::where('admin_id', Auth::guard('admin')->id())
             ->where('table_name', 'banners')
             ->first();
 

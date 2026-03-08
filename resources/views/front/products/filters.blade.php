@@ -1,141 +1,223 @@
+<?php
+use App\Models\ProductsFilter;
+?>
+
 <div class="col-lg-3 col-md-12">
     <!-- Availability start -->
     <div class="border-bottom mb-4 pb-4">
         <h5 class="font-weight-semi-bold mb-4">Availability</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="in-stock">
-                <label class="custom-control-label" for="in-stock">In Stock</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="out-of-stock">
-                <label class="custom-control-label" for="out-of-stock">Out of Stock</label>
-            </div>
-        </form>
+        @php
+            $getAvailability = ProductsFilter::getAvailability($catIds);
+            $selectedAvailability = request()->has('availability') ? preg_split('/[~,]/', request()->get('availability')) : [];
+        @endphp
+        <div>
+            @foreach($getAvailability as $key => $availability)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "availability" id = "availability{{$key}}" value = "{{$availability}}" class = "custom-control-input filterAjax" {{ in_array($availability, $selectedAvailability) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="availability{{$key}}">{{ ucfirst(str_replace('_', ' ', $availability)) }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
     <!-- Availability end -->
 
     <!-- Gender start -->
     <div class="border-bottom mb-4 pb-4">
-        <h5 class="font-weight-semi-bold mb-4">Availability</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="men">
-                <label class="custom-control-label" for="men">Men</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="women">
-                <label class="custom-control-label" for="women">Women</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="kids">
-                <label class="custom-control-label" for="kids">Kids</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="unisex">
-                <label class="custom-control-label" for="unisex">Unisex</label>
-            </div>
-        </form>
+        <h5 class="font-weight-semi-bold mb-4">Gender</h5>
+        @php
+            $selectedGenders = request()->has('gender') ? preg_split('/[~,]/', request()->get('gender')) : [];
+            $selectedGenders = array_map('strtolower', array_filter($selectedGenders));
+            $genderOptions = [
+                'men' => 'Men',
+                'women' => 'Women',
+                'unisex' => 'Unisex',
+                'kids' => 'Kids',
+            ];
+        @endphp
+        <div>
+            @foreach($genderOptions as $genderValue => $genderLabel)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "gender" id = "gender{{$genderValue}}" value = "{{$genderValue}}" class = "custom-control-input filterAjax" {{ in_array($genderValue, $selectedGenders) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="gender{{$genderValue}}">{{ $genderLabel }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
     <!-- Gender end -->
 
     <!-- Price Start -->
-    <div class="border-bottom mb-4 pb-4">
-        <h5 class="font-weight-semi-bold mb-4">Filter by Price</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="price-1">
-                <label class="custom-control-label" for="price-1">KSH.0 - KSH.2000</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="price-2">
-                <label class="custom-control-label" for="price-2">KSH.2001 - KSH.5000</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="price-3">
-                <label class="custom-control-label" for="price-3">KSH.5001 - KSH.10000</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="price-4">
-                <label class="custom-control-label" for="price-4">KSH.10001 - KSH.20000</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between">
-                <input type="checkbox" class="custom-control-input" id="price-5">
-                <label class="custom-control-label" for="price-5">KSH.20001 + </label>
-            </div>
-        </form>
+    <div class = "border-bottom mb-4 pb-4">
+        <h5 class = font-weight-semi-bold mb-4>Filter by Price</h5>
+        @php
+            $priceRanges = [
+                '0-2500' => 'Below 2500',
+                '2500-5000' => '2500 to 5000',
+                '5000-10000' => '5000 to 10000',
+                '10000-25000' => '10000 to 25000',
+                '25000-50000' => '25000 to 50000',
+                '50000-999999' => 'Above 50000',
+            ];
+            $selectedPrices = [];
+            if (request()->has('price')) {
+                $selectedPrices = explode('~', request()->get('price'));
+            }
+        @endphp
+        <div>
+            @foreach($priceRanges as $key => $price)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "price" id = "price{{$key}}" value = "{{$key}}" class = "custom-control-input filterAjax" {{ in_array($key, $selectedPrices, true) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="price{{$key}}">{{ $price }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
     <!-- Price End -->
 
     <!-- Color Start -->
     <div class="border-bottom mb-4 pb-4">
-        <h5 class="font-weight-semi-bold mb-4">Filter by Color</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="color-1">
-                <label class="custom-control-label" for="color-1">Black</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="color-2">
-                <label class="custom-control-label" for="color-2">White</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="color-3">
-                <label class="custom-control-label" for="color-3">Red</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="color-4">
-                <label class="custom-control-label" for="color-4">Blue</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between">
-                <input type="checkbox" class="custom-control-input" id="color-5">
-                <label class="custom-control-label" for="color-5">Green</label>
-            </div>
-        </form>
+        <h5 class="front-weight-semi-bold mb-4">Filter by Color</h5>
+        @php
+            $getColors = ProductsFilter::getColors($catIds);
+            $selectedColors = request()->has('color') ? preg_split('/[~,]/', request()->get('color')) : [];
+        @endphp
+        <div>
+            @foreach($getColors as $key => $color)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "color" id = "color{{$key}}" value = "{{$color}}" class = "custom-control-input filterAjax" {{ in_array($color, $selectedColors) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="color{{$key}}">{{ ucfirst($color) }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
     <!-- Color End -->
 
-    <!-- Occassion start -->
+    <!-- Occasion start -->
     <div class="border-bottom mb-4 pb-4">
-        <h5 class="font-weight-semi-bold mb-4">Occasion</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="ocassion-1">
-                <label class="custom-control-label" for="ocassion-1">Work</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="ocassion-2">
-                <label class="custom-control-label" for="ocassion-2">Daily</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="kids">
-                <label class="custom-control-label" for="kids">Travel</label>
-            </div>
-        </form>
+        <h5 class="font-weight-semi-bold mb-4">Filter by Occasion</h5>
+        @php
+            $selectedOccasions = request()->has('occasion') ? preg_split('/[~,]/', request()->get('occasion')) : [];
+            $selectedOccasions = array_map('strtolower', array_filter($selectedOccasions));
+            $occasionOptions = [
+                'work' => 'Work',
+                'cassual' => 'Cassual',
+                'travel' => 'Travel',
+                'gym' => 'Gym',
+            ];
+        @endphp
+        <div>
+            @foreach($occasionOptions as $occasionValue => $occasionLabel)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "occasion" id = "occasion{{$occasionValue}}" value = "{{$occasionValue}}" class = "custom-control-input filterAjax" {{ in_array($occasionValue, $selectedOccasions) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="occasion{{$occasionValue}}">{{ $occasionLabel }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
-    <!-- Occassion end -->
+    <!-- Occasion end -->
 
     <!-- Size Start -->
-    <div class="mb-5">
+    <div class = "border-bottom mb-4 pb-4">
         <h5 class="font-weight-semi-bold mb-4">Filter by Size</h5>
-        <form>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" checked id="size-1">
-                <label class="custom-control-label" for="size-1">S</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="size-2">
-                <label class="custom-control-label" for="size-2">M</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="size-3">
-                <label class="custom-control-label" for="size-3">L</label>
-            </div>
-            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
-                <input type="checkbox" class="custom-control-input" id="size-4">
-                <label class="custom-control-label" for="size-4">XL</label>
-            </div>
-        </form>
+        @php
+            $getSizes = ProductsFilter::getSizes($catIds);
+            $selectedSizes = request()->has('size') ? preg_split('/[~,]/', request()->get('size')) : [];
+        @endphp
+        <div>
+            @foreach($getSizes as $key => $size)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "size" id = "size{{$key}}" value = "{{$size}}" class = "custom-control-input filterAjax" {{ in_array($size, $selectedSizes) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="size{{$key}}">{{ strtoupper($size) }}</label>
+                </div>
+            @endforeach
+        </div>
     </div>
     <!-- Size End -->
+
+    <!-- Brand Start -->
+    <div class = "border-bottom mb-4 pb-4">
+        <h5 class="font-weight-semi-bold mb-4">Brands</h5>
+        @php
+            $getBrands = ProductsFilter::getBrands($catIds);
+            $selectedBrands = [];
+            if (request()->has('brand') && !empty(request()->get('brand'))) {
+                $selectedBrands = preg_split('/[~,]/', request()->get('brand'));
+            }
+        @endphp
+        <div>
+            @foreach($getBrands as $key => $brand)
+                <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                    <input type="checkbox" name = "brand" id = "brand{{$key}}" value = "{{$brand['name']}}" class = "custom-control-input filterAjax" {{ in_array($brand['name'], $selectedBrands) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="brand{{$key}}">{{ ucfirst($brand['name']) }}</label>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    <!-- Brand End -->
+
+    <!-- Dynamic Filter Start -->
+
+    @foreach($filters as $filter)
+
+    @php
+        // Get values already sorted by 'sort' from eager loading
+        $filterValues = $filter->values
+            ->where('status', 1)
+            ->filter(function($value) use ($catIds) {
+                // Keep only those linked to products in these categories
+                return $value->products->whereIn('category_id', $catIds)->isNotEmpty();
+            });
+
+        if ($filterValues->isEmpty()) {
+            continue;
+        }
+
+        $selectedRawValues = request()->get($filter->filter_name, []);
+        if (is_array($selectedRawValues)) {
+            $selectedValues = preg_split('/[~,]/', implode('~', $selectedRawValues));
+        } else {
+            $selectedValues = preg_split('/[~,]/', (string) $selectedRawValues);
+        }
+        $selectedValues = array_values(array_filter(array_map('trim', $selectedValues)));
+    @endphp
+
+
+    <div class="border-bottom mb-4 pb-4">
+
+        <h5 class="font-weight-semi-bold mb-4">
+            Filter by {{ ucwords($filter->filter_name) }}
+        </h5>
+
+        <div>
+
+            @foreach($filterValues as $key => $valueObj)
+
+            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+
+                <input
+                    type="checkbox"
+                    name="{{ $filter->filter_name }}"
+                    id="{{ $filter->filter_name }}{{ $key }}"
+                    value="{{ $valueObj->value }}"
+                    class="custom-control-input filterAjax"
+                    {{ in_array($valueObj->value, $selectedValues) ? 'checked' : '' }}
+                >
+
+                <label
+                    class="custom-control-label"
+                    for="{{ $filter->filter_name }}{{ $key }}"
+                >
+                    {{ ucfirst($valueObj->value) }}
+                </label>
+
+            </div>
+
+            @endforeach
+
+        </div>
+
+    </div>
+
+    @endforeach
+
+    <!-- Dynamic Filter End -->
 </div>

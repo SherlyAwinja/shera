@@ -1,26 +1,27 @@
 @extends('front.layout.layout')
 @section('content')
 
+<div class="home-page">
 
 <!-- Carousel Start -->
-<div id="header-carousel" class="carousel slide" data-ride="carousel">
+<div id="header-carousel" class="carousel slide home-hero" data-ride="carousel">
     <div class="carousel-inner">
         @foreach($homeSliderBanners as $key => $sliderBanner)
-        <div class="carousel-item @if($key == 0) active @endif" style="height: 610px;">
+        <div class="carousel-item hero-slide @if($key == 0) active @endif">
             <a href="{{ $sliderBanner['link'] }}" title="{{ $sliderBanner['title'] }}">
-            <img class="img-fluid" src="{{ asset('front/images/banners/'.$sliderBanner['image']) }}" alt="{{ $sliderBanner['alt'] }}" title="{{ $sliderBanner['title'] }}">
+            <img class="img-fluid hero-image" src="{{ asset('front/images/banners/'.$sliderBanner['image']) }}" alt="{{ $sliderBanner['alt'] }}" title="{{ $sliderBanner['title'] }}">
             </a>
         </div>
         @endforeach
     </div>
     @if(count($homeSliderBanners) > 1)
     <a class="carousel-control-prev" href="#header-carousel" data-slide="prev">
-        <div class="btn btn-dark" style="width: 45px; height: 45px;">
+        <div class="btn btn-dark hero-control">
             <span class="carousel-control-prev-icon mb-n2"></span>
         </div>
     </a>
     <a class="carousel-control-next" href="#header-carousel" data-slide="next">
-        <div class="btn btn-dark" style="width: 45px; height: 45px;">
+        <div class="btn btn-dark hero-control">
             <span class="carousel-control-next-icon mb-n2"></span>
         </div>
     </a>
@@ -29,29 +30,29 @@
 <!-- Carousel End -->
 
 <!-- Featured Start -->
-<div class="container-fluid pt-5">
+<div class="container-fluid pt-5 home-features">
     <div class="row px-xl-5 pb-3">
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="d-flex align-items-center border mb-4" style="padding: 30px;">
-                <h1 class="fa fa-check text-primary m-0 mr-3"></h1>
+            <div class="d-flex align-items-center border mb-4 feature-card">
+                <h1 class="fa fa-check text-primary m-0 mr-3 feature-icon"></h1>
                 <h5 class="font-weight-semi-bold m-0">Quality Product</h5>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="d-flex align-items-center border mb-4" style="padding: 30px;">
-                <h1 class="fa fa-shipping-fast text-primary m-0 mr-2"></h1>
+            <div class="d-flex align-items-center border mb-4 feature-card">
+                <h1 class="fa fa-shipping-fast text-primary m-0 mr-2 feature-icon"></h1>
                 <h5 class="font-weight-semi-bold m-0">Free Shipping</h5>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="d-flex align-items-center border mb-4" style="padding: 30px;">
-                <h1 class="fas fa-exchange-alt text-primary m-0 mr-3"></h1>
+            <div class="d-flex align-items-center border mb-4 feature-card">
+                <h1 class="fas fa-exchange-alt text-primary m-0 mr-3 feature-icon"></h1>
                 <h5 class="font-weight-semi-bold m-0">14-Day Return</h5>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="d-flex align-items-center border mb-4" style="padding: 30px;">
-                <h1 class="fa fa-phone-volume text-primary m-0 mr-3"></h1>
+            <div class="d-flex align-items-center border mb-4 feature-card">
+                <h1 class="fa fa-phone-volume text-primary m-0 mr-3 feature-icon"></h1>
                 <h5 class="font-weight-semi-bold m-0">24/7 Support</h5>
             </div>
         </div>
@@ -61,22 +62,26 @@
 
 @if(count($categories) > 0)
 <!-- Categories Start -->
-<div class="container-fluid pt-2">
+<div class="container-fluid pt-2 home-categories">
     <div class="row px-xl-5 pb-3">
-        @foreach($categories as $category)
-            @php
-                $image=!empty($category['image']) ? asset('front/images/categories/'.$category['image']) : asset('front/images/categories/no-image.jpg');
-            @endphp
-        <div class="col-lg-4 col-md-6 pb-1">
-            <div class="cat-item d-flex flex-column border mb-4" style="padding: 30px;">
-                <p class="text-right">{{ $category['product_count'] }} Products</p>
-                <a href="{{ url('category/'.$category['url']) }}" class="cat-img position-relative overflow-hidden mb-3">
-                    <img class="img-fluid" src="{{ $image }}" alt="{{ $category['name'] }}">
-                </a>
-                <h5 class="font-weight-semi-bold m-0">{{ $category['name'] }}</h5>
+        <div class="col-12">
+            <div class="owl-carousel categories-carousel">
+                @foreach($categories as $category)
+                    @php
+                        $image=!empty($category['image']) ? asset('front/images/categories/'.$category['image']) : asset('front/images/categories/no-image.jpg');
+                    @endphp
+                <div class="category-slide-item">
+                    <div class="cat-item d-flex flex-column border mb-0 category-card">
+                        <p class="text-right category-count">{{ $category['product_count'] }} Products</p>
+                        <a href="{{ url('category/'.$category['url']) }}" class="cat-img position-relative overflow-hidden mb-3">
+                            <img class="img-fluid" src="{{ $image }}" alt="{{ $category['name'] }}">
+                        </a>
+                        <h5 class="font-weight-semi-bold m-0 category-name">{{ $category['name'] }}</h5>
+                    </div>
+                </div>
+                @endforeach
             </div>
         </div>
-        @endforeach
     </div>
 </div>
 <!-- Categories End -->
@@ -84,12 +89,13 @@
 
 @if(count($homeFixBanners) > 0)
 <!-- Offer Start -->
-<div class="container-fluid offer pt-2">
+<div class="container-fluid offer pt-2 home-offers">
     <div class="row px-xl-5">
         @foreach($homeFixBanners as $fixBanner)
         <div class="col-md-6 pb-4">
-            <div class="position-relative bg-secondary text-center text-md-right text-white mb-2 py-5 px-5" style="background-image: url({{ asset('front/images/banners/' . $fixBanner['image']) }}); background-size: cover;">
-            <div class="position-relative" style="z-index: 1;">
+            <div class="position-relative bg-secondary text-center text-md-right text-white mb-2 py-5 px-5 offer-card" style="background-image: url({{ asset('front/images/banners/' . $fixBanner['image']) }}); background-size: cover;">
+            <div class="offer-overlay"></div>
+            <div class="position-relative offer-content">
                 <h5 class="text-uppercase text-primary mb-3">{{ $fixBanner['title'] }}</h5>
                 <h1 class="mb-4 font-weight-semi-bold">{{ $fixBanner['alt'] }}</h1>
                 <a href="{{ $fixBanner['link'] }}" class="btn btn-outline-primary py-md-2 px-md-3">Shop Now
@@ -106,9 +112,9 @@
 
 @if(count($featuredProducts) > 0)
 <!-- Products Start -->
- <div class="container-fluid pt-3">
+ <div class="container-fluid pt-3 home-featured-products">
     <div class="text-center mb-4">
-        <h2 class="section-title px-5"><span class="px-2">Featured Products</span></h2>
+        <h2 class="section-title px-5 home-section-title"><span class="px-2">Featured Products</span></h2>
 
     </div>
     <div class="row px-xl-5 pb-3">
@@ -122,7 +128,7 @@
                         : $fallbackImage);
         @endphp
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="card product-item border-0 mb-4">
+            <div class="card product-item border-0 mb-4 product-card-sleek">
                 <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
                     <a href="#"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
@@ -152,11 +158,11 @@
 @endif
 
 <!-- Subscribe Start -->
-<div class="container-fluid bg-secondary my-2">
+<div class="container-fluid bg-secondary my-2 home-newsletter">
     <div class="row justify-content-md-center py-5 px-xl-5">
         <div class="col-md-6 col-12 py-5">
-            <div class="text-center mb-2 pb-2">
-                <h2 class="section-title px-5 mb-3"><span class="bg-secondary px-2">Stay Updated</span></h2>
+            <div class="text-center mb-2 pb-2 newsletter-panel">
+                <h2 class="section-title px-5 mb-3 home-section-title"><span class="bg-secondary px-2">Stay Updated</span></h2>
                 <p>Stay updated with the latest products, offers & exclusive deals!</p>
             </div>
             <form action="">
@@ -175,11 +181,13 @@
 
 @if(count($newArrivalProducts) > 0)
 <!-- Products Start -->
-<div class="container-fluid pt-4">
+<div class="container-fluid pt-4 home-new-arrivals">
     <div class="text-center mb-4">
-        <h2 class="section-title px-5"><span class="px-2">New Arrivals</span></h2>
+        <h2 class="section-title px-5 home-section-title"><span class="px-2">New Arrivals</span></h2>
     </div>
     <div class="row px-xl-5 pb-3">
+        <div class="col-12">
+            <div class="owl-carousel new-arrivals-carousel">
         @foreach($newArrivalProducts as $product)
             @php
                 $fallbackImage = asset('front/images/products/no-image.jpg');
@@ -189,8 +197,8 @@
                         ? asset('product-image/medium/'.$product['product_images'][0]['image'])
                         : $fallbackImage);
         @endphp
-        <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
-            <div class="card product-item border-0 mb-4">
+        <div class="new-arrival-item">
+            <div class="card product-item border-0 mb-0 product-card-sleek new-arrival-card">
                 <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
                     <a href="#"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
@@ -210,6 +218,8 @@
             </div>
         </div>
         @endforeach
+            </div>
+        </div>
     </div>
 </div>
 <!-- Products End -->
@@ -218,12 +228,12 @@
 
 @if(count($logoBanners) > 0)
 <!-- Vendor Start -->
-<div class="container-fluid py-2">
+<div class="container-fluid py-2 home-vendors">
     <div class="row px-xl-5">
         <div class="col">
             <div class="owl-carousel vendor-carousel">
                 @foreach($logoBanners as $logo)
-                <div class="vendor-item border p-4">
+                <div class="vendor-item border p-4 vendor-card">
                     <img src="{{ asset('front/images/banners/'.$logo['image']) }}" alt="{{ $logo['title'] ?? 'logo' }}">
                 </div>
                 @endforeach
@@ -233,5 +243,7 @@
 </div>
 <!-- Vendor End -->
 @endif
+
+</div>
 
 @endsection

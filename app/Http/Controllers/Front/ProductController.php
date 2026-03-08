@@ -30,7 +30,7 @@ class ProductController extends Controller
 
         // if it's an Ajax(filters.js adds &json=), return JSON with rendered view
         if (request()->has('json')) {
-            $view = view('front.products,ajax_products_listing', $data)->render();
+            $view = view('front.products.ajax_products_listing', $data)->render();
             return response()->json(['view' => $view]);
         }
 
@@ -83,5 +83,75 @@ class ProductController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function ajaxSearch(Request $request)
+    {
+        $query = $request->get('q');
+
+        // Avoid searching for very short terms
+        if (strlen($query) < 3) {
+            return "";
+        }
+
+        $products = $this->productService->searchProducts($query, 6);
+
+        $output = "";
+
+        foreach ($products as $product) {
+
+            // Select image: main image, gallery image, or fallback
+            if (!empty($product->main_image)) {
+                $image = asset('front/images/products/' . $product->main_image);
+            } elseif ($product->product_images->isNotEmpty()) {
+                $image = asset('front/images/products/' . $product->product_images->first()->image);
+            } else {
+                $image = asset('front/images/products/no-image.jpg');
+            }
+
+            $output .= '
+            <div class="search-result-item py-2 border-bottom" style="max-width:600px; margin:10px;">
+                <div class="row no-gutters align-items-center">
+
+                    <div class="col-auto pr-2">
+                        <a href="' . url('product/' . $product->id) . '">
+                            <img src="' . $image . '" alt="' . $product->product_name . '"
+                                style="width:60px; height:60px; object-fit:cover; border-radius:5px;">
+                        </a>
+                    </div>
+
+                    <div class="col">
+                        <h6 class="mb-1" style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ' . $product->product_name . '
+                        </h6>
+
+                        <div class="d-flex align-items-center">
+                            <span class="text-primary font-weight-bold">KSH.' . $product->final_price . '</span>';
+
+            if ($product->product_discount > 0) {
+                $output .= '
+                            <small class="text-muted ml-2">
+                                <del>KSH.' . $product->product_price . '</del>
+                            </small>';
+            }
+
+            $output .= '
+                        </div>
+                    </div>
+
+                    <div class="col-auto pl-2 text-right">
+                        <a href="' . url('product/' . $product->id) . '" class="btn btn-sm btn-outline-primary" title="View">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="javascript:void(0)" data-id="' . $product->id . '" class="btn btn-sm btn-outline-success addToCartBtn" title="Add to Cart">
+                            <i class="fas fa-shopping-cart"></i>
+                        </a>
+                    </div>
+
+                </div>
+            </div>';
+        }
+
+        return $output;
     }
 }

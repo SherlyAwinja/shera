@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Session;
 use App\Services\Admin\CategoryService;
 use App\Models\Category;
 use App\Http\Requests\Admin\CategoryRequest;
-use App\Models\ColumnPrefence;
+use App\Models\ColumnPreference;
 use Illuminate\Support\Facades\Auth;
 
 
@@ -34,7 +34,7 @@ class CategoryController extends Controller
         $categories = $results['categories'];
         $categoriesModule = $results['categoriesModule'];
 
-        $columnPrefs = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'categories')->first();
+        $columnPrefs = ColumnPreference::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'categories')->first();
 
         $categoriesSavedOrder = $columnPrefs ? json_decode($columnPrefs->column_order, true) : null;
 

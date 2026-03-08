@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\FilterController;
+use App\Http\Controllers\Admin\FilterValueController;
 
 // Front Controllers
 use App\Http\Controllers\Front\IndexController;
@@ -119,6 +121,16 @@ Route::prefix('admin')->group(function () {
         Route::post('/products/delete-temp-image', [ProductController::class, 'deleteTempProductImage'])->name('product.delete.temp.altimage');
         Route::post('/products/delete-temp-video', [ProductController::class, 'deleteTempProductVideo'])->name('product.delete.temp.video');
 
+        // Filters CRUD + status update
+        Route::resource('filters', FilterController::class);
+        Route::post('update-filter-status', [FilterController::class, 'updateFilterStatus'])->name('filters.update-status');
+
+        // Filter Values CRUD (nested inside filters)
+        // We map parameter name 'filter-values' => 'value' so request()->route('value') works.
+        Route::prefix('filters/{filter}')->group(function () {
+            Route::resource('filter-values', FilterValueController::class)->parameters(['filter-values' => 'value']);
+        });
+
         // Attributes
         // Update Product Attribute Status
         Route::post('update-attribute-status', [ProductController::class, 'updateAttributeStatus']);
@@ -153,4 +165,8 @@ Route::namespace('App\Http\Controllers\Front')->group(function () {
     foreach ($catUrls as $url) {
         Route::get("/$url",[ProductFrontController::class, 'index']);
     }
+
+    Route::get('/search-products', [ProductFrontController::class, 'ajaxSearch'])
+        ->name('search.products');
+
 });

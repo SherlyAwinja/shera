@@ -29,4 +29,15 @@ class Product extends Model
     {
         return $this->hasMany('App\Models\ProductsAttribute');
     }
+
+    public function filterValues()
+    {
+        return $this->belongsToMany(FilterValue::class, 'product_filter_values', 'product_id', 'filter_value_id');
+    }
+
+    // Backward-compatible alias.
+    public function filtersValues()
+    {
+        return $this->filterValues();
+    }
 }

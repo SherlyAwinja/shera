@@ -83,6 +83,58 @@
         }
     });
 
+    // Categories carousel (single row slider)
+    var categoriesCount = $('.categories-carousel .category-slide-item').length;
+    $('.categories-carousel').owlCarousel({
+        loop: categoriesCount > 4,
+        margin: 20,
+        nav: false,
+        dots: true,
+        autoplay: true,
+        smartSpeed: 900,
+        autoplayHoverPause: true,
+        responsive: {
+            0: {
+                items: 1
+            },
+            576: {
+                items: 2
+            },
+            992: {
+                items: 3
+            },
+            1200: {
+                items: 4
+            }
+        }
+    });
+
+    // New arrivals carousel (single row slider)
+    var newArrivalsCount = $('.new-arrivals-carousel .new-arrival-item').length;
+    $('.new-arrivals-carousel').owlCarousel({
+        loop: newArrivalsCount > 4,
+        margin: 20,
+        nav: false,
+        dots: true,
+        autoplay: true,
+        smartSpeed: 900,
+        autoplayHoverPause: true,
+        responsive: {
+            0: {
+                items: 1
+            },
+            576: {
+                items: 2
+            },
+            992: {
+                items: 3
+            },
+            1200: {
+                items: 4
+            }
+        }
+    });
+
 
     // Product Quantity
     $('.quantity button').on('click', function () {
@@ -115,4 +167,3 @@
     });
     
 })(jQuery);
-

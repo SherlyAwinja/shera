@@ -11,7 +11,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Http\Requests\Admin\ProductRequest;
 use App\Models\Brand;
-use App\Models\ColumnPrefence;
+use App\Models\ColumnPreference;
 
 
 
@@ -38,7 +38,7 @@ class ProductController extends Controller
         $products = $result['products'];
         $productsModule = $result['productsModule'];
 
-        $columnPrefs = ColumnPrefence::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'products')->first();
+        $columnPrefs = ColumnPreference::where('admin_id', Auth::guard('admin')->id())->where('table_name', 'products')->first();
 
         $productsSavedOrder = $columnPrefs ? json_decode($columnPrefs->column_order, true) : null;
 
@@ -223,19 +223,19 @@ class ProductController extends Controller
 
     public function deleteDropzoneImage(Request $request) {
         $deleted = $this->productService->deleteDropzoneImage($request->image);
-        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ? 
+        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ?
         200 : 404);
     }
 
     public function deleteTempProductImage(Request $request) {
         $deleted = $this->productService->deleteDropzoneImage($request->filename);
-        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ? 
+        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ?
         200 : 404);
     }
 
     public function deleteTempProductVideo(Request $request) {
         $deleted = $this->productService->deleteDropzoneVideo($request->filename);
-        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ? 
+        return response()->json(['status' => $deleted ? 'deleted' : 'file_not_found'], $deleted ?
         200 : 404);
     }
 }

@@ -211,6 +211,7 @@
 
 <!-- Buttons CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+<link rel="stylesheet" href="{{ asset('admin/css/admin-tables.css') }}">
 
 <!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -227,7 +228,20 @@
 <script>
     $(document).ready(function() {
       $("#subadmins").DataTable();
-      $("#brands").DataTable();
+      if ($("#brands").length > 0) {
+        $("#brands").DataTable({
+          order: [[0, "desc"]],
+          pageLength: 10,
+          columnDefs: [
+            { targets: [4], orderable: false, searchable: false }
+          ],
+          language: {
+            search: "Search brands:",
+            lengthMenu: "Show _MENU_ brands",
+            info: "Showing _START_ to _END_ of _TOTAL_ brands"
+          }
+        });
+      }
 
       const tableConfig = [
         {
@@ -240,23 +254,57 @@
           id: "products",
           savedOrder: {!!json_encode($productsSavedOrder ?? null)!!},
           hiddenCols: {!!json_encode($productsHiddenCols ?? null)!!},
-          tableName: "products"
+          tableName: "products",
+          pageLength: 10,
+          nonOrderableTargets: [6],
+          language: {
+            search: "Search products:",
+            lengthMenu: "Show _MENU_ products",
+            info: "Showing _START_ to _END_ of _TOTAL_ products"
+          }
+        },
+        {
+            id: "filters",
+            savedOrder: {!!json_encode($filtersSavedOrder ?? null)!!},
+            hiddenCols: {!!json_encode($filtersHiddenCols ?? null)!!},
+            tableName: "filters"
+        },
+        {
+            id: "filters_values",
+            savedOrder: {!!json_encode($filtersValuesSavedOrder ?? null)!!},
+            hiddenCols: {!!json_encode($filtersValuesHiddenCols ?? null)!!},
+            tableName: "filters_values"
         }
+
       ];
       tableConfig.forEach(config => {
         const tableElement = $("#" + config.id);
         if (tableElement.length > 0) {
+          const hiddenColumnDefs = (config.hiddenCols && config.hiddenCols.length > 0)
+            ? config.hiddenCols.map(index => ({
+                targets: parseInt(index),
+                visible: false
+              }))
+            : [];
+
+          const nonOrderableDefs = (config.nonOrderableTargets && config.nonOrderableTargets.length > 0)
+            ? config.nonOrderableTargets.map(index => ({
+                targets: parseInt(index),
+                orderable: false,
+                searchable: false
+              }))
+            : [];
+
           let dataTable = tableElement.DataTable({
-            order: [[0, "desc"]],
+            order: config.order || [[0, "desc"]],
+            pageLength: config.pageLength || 10,
             colReorder: {
               order: config.savedOrder
             },
             dom: 'Bfrtip',
             buttons: ['colvis'],
-            columnDefs: (config.hiddenCols && config.hiddenCols.length > 0) ? config.hiddenCols.map(index => ({
-              targets: parseInt(index),
-              visible: false
-            })) : []
+            language: config.language || {},
+            columnDefs: [...hiddenColumnDefs, ...nonOrderableDefs]
           });
           dataTable.on('column-reorder', function(){
             savePreferences(config.tableName, dataTable.colReorder.order(),

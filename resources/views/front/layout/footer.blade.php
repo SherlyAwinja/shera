@@ -1,9 +1,14 @@
 <!-- Footer Start -->
-<div class="container-fluid bg-secondary text-dark mt-5 pt-2">
+<div class="container-fluid bg-secondary text-dark mt-5 pt-2 front-footer {{ request()->url() === url('/') || isset($categoryDetails) ? 'home-footer-theme' : '' }}">
     <div class="row px-xl-5 pt-5">
         <div class="col-lg-4 col-md-12 mb-5 pr-3 pr-xl-5">
-            <a href="" class="text-decoration-none">
-                <h1 class="mb-4 display-5 font-weight-semi-bold"><span class="text-primary font-weight-bold border border-white px-1 mr-0">S</span>H<span class="text-primary font-weight-bold border border-white px-1 mr-0">E</span>RA</h1>
+            <a href="{{ url('/') }}" class="text-decoration-none footer-logo-link" aria-label="SHERA Home">
+                <h1 class="mb-4 footer-logo">
+                    <span class="shera-logo">
+                        <span class="shera-logo-mark" aria-hidden="true">S</span>
+                        <span class="shera-logo-word">SHERA</span>
+                    </span>
+                </h1>
             </a>
             <p>Welcome to <strong>SHERA</strong>, a leading platform where sellers from different parts of the world join to bring you the best of the best quality of bags.</p>
             <p class="mb-2"><i class="fa fa-map-marker-alt text-primary mr-3"></i>Nairobi, Kenya</p>

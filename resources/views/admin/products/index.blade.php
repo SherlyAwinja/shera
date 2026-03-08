@@ -42,10 +42,10 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Product Name</th>
-                                        <th>Product Code</th>
-                                        <th>Product Color</th>
-                                        <th>Product Category</th>
+                                        <th>Color</th>
+                                        <th>Category</th>
                                         <th>Parent Category</th>
+                                        <th>Status</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -54,35 +54,42 @@
                                         <tr>
                                             <td>{{ $product->id }}</td>
                                             <td>{{ $product->product_name }}</td>
-                                            <td>{{ $product->product_code }}</td>
                                             <td>{{ $product->product_color }}</td>
                                             <td>{{ $product['category']['name'] }}</td>
                                             <td>
                                                 @if(isset($product['category']['parentCategory']['name']))
-                                                {{ $product['category']['parentCategory']['name'] }}
+                                                    {{ $product['category']['parentCategory']['name'] }}
                                                 @else
-                                                ROOT
+                                                    ROOT
                                                 @endif
                                             </td>
                                             <td>
-                                            <!-- Actions (Enable/Disable, Edit, Delete) will be added here -->
-                                            @if($productsModule['edit_access'] == 1 || $productsModule['full_access'] == 1)
-                                                @if($product -> status == 1)
-                                                <a class="updateProductStatus" data-product_id="{{ $product->id }}" style="color:#3f6ed3;" href="javascript:void(0)"><i class="fas fa-toggle-on" data-status="Active"></i></a>
+                                                @if($product->status == 1)
+                                                    <span class="product-status-badge">Active</span>
                                                 @else
-                                                <a class="updateProductStatus" data-product_id="{{ $product->id }}" style="color:grey;" href="javascript:void(0)"><i class="fas fa-toggle-off" data-status="Inactive"></i></a>
+                                                    <span class="product-status-badge">Inactive</span>
                                                 @endif
-                                            @endif
-                                            @if($productsModule['edit_access'] == 1)
-                                                <a href="{{ url('admin/products/'.$product->id.'/edit') }}"><i class="fas fa-edit"></i></a>
-                                            @endif
-                                            @if($productsModule['full_access'] == 1)
+                                            </td>
+                                            <td>
+                                                @if($productsModule['edit_access'] == 1 || $productsModule['full_access'] == 1)
+                                                @if($product->status == 1)
+                                                <a class="updateProductStatus" data-product_id="{{ $product->id }}" style="color:#3f6ed3;" href="javascript:void(0)" title="Disable Product"><i class="fas fa-toggle-on" data-status="Active"></i></a>
+                                                @else
+                                                <a class="updateProductStatus" data-product_id="{{ $product->id }}" style="color:grey;" href="javascript:void(0)" title="Enable Product"><i class="fas fa-toggle-off" data-status="Inactive"></i></a>
+                                                @endif
+                                                @if($productsModule['edit_access'] == 1)
+                                                &nbsp;&nbsp;
+                                                <a href="{{ url('admin/products/'.$product->id.'/edit') }}" title="Edit Product"><i class="fas fa-edit"></i></a>
+                                                &nbsp;&nbsp;
+                                                @endif
+                                                @if($productsModule['full_access'] == 1)
                                                 <form action="{{ route('products.destroy', $product->id) }}" method="POST" style="display:inline-block;">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="confirmDelete" name="Product" data-module="product" data-id="{{ $product->id }}" type="button" style="border:none; background:none;color:#3f6ed3;" href="javascript:void(0)" title="Delete Product"><i class="fas fa-trash"></i></button>
+                                                    <button class="confirmDelete" name="Product" data-module="product" data-id="{{ $product->id }}" type="button" style="border:none; background:none;color:#3f6ed3;" title="Delete Product"><i class="fas fa-trash"></i></button>
                                                 </form>
-                                            @endif
+                                                @endif
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach

@@ -119,6 +119,49 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label" for="gender">Gender*</label>
+                                <select name="gender" id="gender" class="form-control">
+                                    <option value="">Select</option>
+                                    <option value="men" {{ old('gender', $product->gender ?? '') == 'men' ? 'selected' : '' }}>Men</option>
+                                    <option value="women" {{ old('gender', $product->gender ?? '') == 'women' ? 'selected' : '' }}>Women</option>
+                                    <option value="unisex" {{ old('gender', $product->gender ?? '') == 'unisex' ? 'selected' : '' }}>Unisex</option>
+                                    <option value="kids" {{ old('gender', $product->gender ?? '') == 'kids' ? 'selected' : '' }}>Kids</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label d-block">Occasion*</label>
+                                @php
+                                    $selectedOccasions = old('occasion');
+                                    if (is_null($selectedOccasions)) {
+                                        $selectedOccasions = isset($product->occasion)
+                                            ? preg_split('/\s*,\s*/', strtolower((string) $product->occasion), -1, PREG_SPLIT_NO_EMPTY)
+                                            : [];
+                                    } elseif (!is_array($selectedOccasions)) {
+                                        $selectedOccasions = preg_split('/[~,]/', strtolower((string) $selectedOccasions), -1, PREG_SPLIT_NO_EMPTY);
+                                    }
+
+                                    $selectedOccasions = array_values(array_unique(array_filter(array_map(
+                                        fn ($value) => strtolower(trim((string) $value)),
+                                        (array) $selectedOccasions
+                                    ))));
+                                @endphp
+                                <div class="d-flex flex-wrap gap-2">
+                                    <input class="btn-check" type="checkbox" name="occasion[]" id="occasion_work" value="work" {{ in_array('work', $selectedOccasions, true) ? 'checked' : '' }}>
+                                    <label class="btn btn-outline-primary rounded-pill px-3 py-1" for="occasion_work">Work</label>
+
+                                    <input class="btn-check" type="checkbox" name="occasion[]" id="occasion_cassual" value="cassual" {{ in_array('cassual', $selectedOccasions, true) ? 'checked' : '' }}>
+                                    <label class="btn btn-outline-primary rounded-pill px-3 py-1" for="occasion_cassual">Cassual</label>
+
+                                    <input class="btn-check" type="checkbox" name="occasion[]" id="occasion_travel" value="travel" {{ in_array('travel', $selectedOccasions, true) ? 'checked' : '' }}>
+                                    <label class="btn btn-outline-primary rounded-pill px-3 py-1" for="occasion_travel">Travel</label>
+
+                                    <input class="btn-check" type="checkbox" name="occasion[]" id="occasion_gym" value="gym" {{ in_array('gym', $selectedOccasions, true) ? 'checked' : '' }}>
+                                    <label class="btn btn-outline-primary rounded-pill px-3 py-1" for="occasion_gym">Gym</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="group_code">Group Code</label>
                                 <input type="text" class="form-control" id="group_code" name="group_code" placeholder="Enter Group Code" value="{{ old('group_code', $product->group_code ?? '') }}">
                             </div>
@@ -176,7 +219,7 @@
                                         <input name="sku[]" class="form-control flex-fill col-2" placeholder="Enter SKU">
                                         <input name="price[]" class="form-control flex-fill col-2" placeholder="Enter Price">
                                         <input name="stock[]" class="form-control flex-fill col-2" placeholder="Enter Stock">
-                                        <input name="sort[]" class="form-control flex-fill col-2" placeholder="Enter Sort">
+                                        <input name="attr_sort[]" class="form-control flex-fill col-2" placeholder="Enter Sort">
                                         <a href="javascript:void(0)" class="btn btn-sm btn-success add_button" title="Add row">
                                             <i class="fas fa-plus"></i>
                                         </a>
@@ -328,6 +371,31 @@
                                 <label class="form-label" for="search_keywords">Search Keywords</label>
                                 <textarea name="search_keywords" class="form-control" placeholder="Enter Search Keywords">{{ old('search_keywords', $product->search_keywords ?? '') }}</textarea>
                             </div>
+
+                            @php
+                                $filters = \App\Models\Filter::with([
+                                    'values' => function ($q) {
+                                        $q->where('status', 1)->orderBy('sort', 'asc');
+                                    }
+                                ])->where('status', 1)->orderBy('sort', 'asc')->get();
+
+                                $selectedValues = isset($product) ? $product->filterValues->pluck('id')->toArray() : [];
+                            @endphp
+
+                            @foreach($filters as $filter)
+                                <div class="mb-3">
+                                    <label>{{ ucwords($filter->filter_name) }}</label>
+                                    <select name="filter_values[{{ $filter->id }}]" class="form-control">
+                                        <option value="">-- Select {{ ucwords($filter->filter_name) }} --</option>
+
+                                        @foreach($filter->values as $value)
+                                            <option value="{{ $value->id }}" {{ in_array($value->id, $selectedValues) ? 'selected' : '' }}>
+                                                {{ ucfirst($value->value) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endforeach
 
                             <div class="mb-3">
                                 <label class="form-label" for="meta_title">Meta Title</label>

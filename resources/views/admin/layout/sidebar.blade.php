@@ -59,7 +59,7 @@
                         @endif
                     </ul>
                 </li>
-                <li class="nav-item {{ in_array(Session::get('page'), ['categories', 'brands', 'products']) ? 'menu-open' : '' }}">
+                <li class="nav-item {{ in_array(Session::get('page'), ['categories', 'brands', 'products', 'filters']) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ in_array(Session::get('page'), ['categories', 'brands', 'products']) ? 'active' : '' }}">
                         <i class="nav-icon bi bi-clipboard-fill"></i>
                         <p>
@@ -84,6 +84,12 @@
                             <a href="{{ url('admin/products') }}" class="nav-link {{ Session::get('page') == 'products' ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-circle"></i>
                                 <p>Products</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url('admin/filters') }}" class="nav-link {{ Session::get('page') == 'filters' ? 'active' : '' }}">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>Filters</p>
                             </a>
                         </li>
                     </ul>

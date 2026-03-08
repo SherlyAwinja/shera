@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
 use App\Models\ProductsImage;
 use App\Models\ProductsAttribute;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Schema;
 
 
 class ProductService
@@ -76,6 +78,8 @@ class ProductService
             $message = "Product added successfully";
         }
 
+        $this->validateAttributeConflicts($data, $product->id ?? null);
+
         $product->admin_id = Auth::guard('admin')->user()->id;
         $product->admin_type = Auth::guard('admin')->user()->role;
 
@@ -85,13 +89,31 @@ class ProductService
         $product->product_code = $data['product_code'];
         $product->product_color = $data['product_color'];
         $product->family_color = $data['family_color'];
+        if (Schema::hasColumn('products', 'gender')) {
+            $product->gender = $data['gender'] ?? null;
+        }
+        if (Schema::hasColumn('products', 'occasion')) {
+            $occasionInput = $data['occasion'] ?? [];
+            if (!is_array($occasionInput)) {
+                $occasionInput = preg_split('/[~,]/', (string) $occasionInput);
+            }
+            $occasionValues = array_values(array_unique(array_filter(array_map(
+                fn ($value) => strtolower(trim((string) $value)),
+                (array) $occasionInput
+            ))));
+            $product->occasion = empty($occasionValues) ? null : implode(',', $occasionValues);
+        }
         $product->group_code = $data['group_code'];
         $product->product_price = $data['product_price'];
         $product->product_discount = $data['product_discount'] ?? 0;
         $product->product_gst = $data['product_gst'] ?? 0;
         $product->dimensions = !empty($data['product_dimensions']) ? $data['product_dimensions'] : null;
         $product->is_featured = $data['is_featured'] ?? 'No';
-        $product->sort = $data['sort'] ?? 0;
+        $productSort = $data['sort'] ?? 0;
+        if (is_array($productSort)) {
+            $productSort = $productSort[0] ?? 0;
+        }
+        $product->sort = is_numeric($productSort) ? (int) $productSort : 0;
 
 
         // Calculate discount & final price
@@ -161,6 +183,16 @@ class ProductService
 
         $product->save();
 
+        // Sync filter values for this product
+        if(!empty($data['filter_values']) && is_array($data['filter_values'])) {
+            // data['filter_values']=[filter_id=>filter_value_id,...]
+            // Keep only selected values (non-empty)
+            $values = array_values(array_filter($data['filter_values']));
+            $product->filterValues()->sync($values);
+        } else {
+            $product->filterValues()->detach();
+        }
+
         // Upload Alternate Product Images
         // NOTE: Frontend stores uploaded filenames in hidden field: product_images_hidden
         if(!empty($data['product_images_hidden'])) {
@@ -192,38 +224,26 @@ class ProductService
 
         // Add Product Attributes
         $total_stock = 0;
-        foreach($data['sku'] as $key => $value) {
-            if(!empty($value)&&!empty($data['size'][$key])&&!empty($data['price'][$key])) {
-                // SKU already exists check (no need to join with products)
-                $attrCountSKU = ProductsAttribute::where('sku', $value)->count();
-                if($attrCountSKU > 0) {
-                    $message = "SKU already exists. Please add another SKU.";
-                    return redirect()->back()->with('success_message', $message);
-                }
-                // Size already exists check, scoped to this product
-                $attrCountSize = ProductsAttribute::where([
-                    'product_id' => $product->id,
-                    'size'       => $data['size'][$key],
-                ])->count();
-                if($attrCountSize > 0) {
-                    $message = "Size already exists. Please add another size.";
-                    return redirect()->back()->with('success_message', $message);
-                }
-                if(empty($data['stock'][$key])) {
-                    $data['stock'][$key] = 0;
-                }
+        foreach(($data['sku'] ?? []) as $key => $value) {
+            $size = $data['size'][$key] ?? null;
+            $price = $data['price'][$key] ?? null;
+            $stock = $data['stock'][$key] ?? 0;
+            $attributeSortInput = $data['attr_sort'] ?? ($data['sort'] ?? []);
+            $attributeSort = is_array($attributeSortInput) ? ($attributeSortInput[$key] ?? 0) : 0;
+
+            if(!empty($value) && !empty($size) && !empty($price)) {
                 $attribute = new ProductsAttribute;
                 $attribute->product_id = $product->id;
                 $attribute->sku = $value;
-                $attribute->size = $data['size'][$key];
-                $attribute->price = $data['price'][$key];
-                if(!empty($data['stock'][$key])) {
-                    $attribute->stock = $data['stock'][$key];
+                $attribute->size = $size;
+                $attribute->price = $price;
+                if(!empty($stock)) {
+                    $attribute->stock = $stock;
                 }
-                $attribute->sort = $data['sort'][$key];
+                $attribute->sort = is_numeric($attributeSort) ? (int) $attributeSort : 0;
                 $attribute->status = 1;
                 $attribute->save();
-                $total_stock = $total_stock + $data['stock'][$key];
+                $total_stock = $total_stock + (int) $stock;
             }
         }
 
@@ -256,6 +276,40 @@ class ProductService
 
 
         return $message;
+    }
+
+    private function validateAttributeConflicts(array $data, ?int $productId = null): void
+    {
+        $seenSizes = [];
+
+        foreach (($data['sku'] ?? []) as $key => $sku) {
+            $size = $data['size'][$key] ?? null;
+            $price = $data['price'][$key] ?? null;
+
+            if (empty($sku) || empty($size) || empty($price)) {
+                continue;
+            }
+
+            if (ProductsAttribute::where('sku', $sku)->exists()) {
+                throw ValidationException::withMessages([
+                    'sku' => 'SKU already exists. Please add another SKU.',
+                ]);
+            }
+
+            $normalizedSize = strtolower(trim((string) $size));
+            if (in_array($normalizedSize, $seenSizes, true)) {
+                throw ValidationException::withMessages([
+                    'size' => 'Size already exists. Please add another size.',
+                ]);
+            }
+            $seenSizes[] = $normalizedSize;
+
+            if ($productId && ProductsAttribute::where('product_id', $productId)->where('size', $size)->exists()) {
+                throw ValidationException::withMessages([
+                    'size' => 'Size already exists. Please add another size.',
+                ]);
+            }
+        }
     }
 
     public function updateAttributeStatus($data) {

@@ -18,4 +18,4 @@
 <script src="{{ asset('front/js/custom.js') }}"></script>
 
 <!-- Filter Script -->
- <script src="{{ asset('front/js/filter.js') }}"></script>
+ <script src="{{ asset('front/js/filters.js') }}"></script>

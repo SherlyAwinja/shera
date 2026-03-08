@@ -35,9 +35,9 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if (response== false) {
-                    $('#verifyPassword').html('<font color="red">Current Password is incorrect</font>');
+                    $('#verifyPassword').html('<span class="text-danger small">Current password is incorrect</span>');
                 } else {
-                    $('#verifyPassword').html('<font color="green">Current Password is correct</font>');
+                    $('#verifyPassword').html('<span class="text-success small">Current password is correct</span>');
                 }
             },
 
@@ -153,14 +153,52 @@ $(document).ready(function() {
             url: '/admin/update-product-status',
             data: { status: status, product_id: product_id },
             success: function(response) {
+                var $toggle = $("a.updateProductStatus[data-product_id='" + product_id + "']");
+                var $statusBadge = $toggle.closest('tr').find('.product-status-badge');
                 if(response['status'] == 0) {
-                    $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                    $toggle.html('<i class="fas fa-toggle-off" style="color:gray" data-status="Inactive"></i>');
+                    $toggle.attr('title', 'Enable Product');
+                    $statusBadge.text('Inactive');
                 } else if(response['status'] == 1) {
-                    $("a[data-product_id='" + product_id + "']").html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                    $toggle.html('<i class="fas fa-toggle-on" style="color:#3f6ed3" data-status="Active"></i>');
+                    $toggle.attr('title', 'Disable Product');
+                    $statusBadge.text('Active');
                 }
             },
             error: function() {
                 alert.html('<font color="red">Something went wrong</font>');
+            }
+        });
+    });
+
+    // Update Filter Status
+    $(document).on("click", ".updateFilterStatus", function () {
+        var status = $(this).find("i").data("status");
+        var filter_id = $(this).data("filter-id");
+
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            type: 'POST',
+            url: '/admin/update-filter-status',
+            data: {
+                status: status,
+                filter_id: filter_id
+            },
+            success: function (resp) {
+                if (resp.status == 0) {
+                    $("a[data-filter-id='" + filter_id + "']").html(
+                        "<i class='fas fa-toggle-off' style='color:grey' data-status='Inactive'></i>"
+                    );
+                } else {
+                    $("a[data-filter-id='" + filter_id + "']").html(
+                        "<i class='fas fa-toggle-on' style='color:#3f6ed3' data-status='Active'></i>"
+                    );
+                }
+            },
+            error: function () {
+                alert("Error");
             }
         });
     });
