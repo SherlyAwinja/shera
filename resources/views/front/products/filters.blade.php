@@ -3,6 +3,40 @@ use App\Models\ProductsFilter;
 ?>
 
 <div class="col-lg-3 col-md-12">
+
+    <!-- Categories Filter Start -->
+    @php
+        // Get current main category (already passed in getCategoryListingData)
+        $mainCategory = $categoryDetails ?? null;
+        $selectedCategories = [];
+
+        if (request()->has('category')) {
+            $selectedCategories = explode('~', request()->get('category'));
+        }
+    @endphp
+
+    @if(!empty($mainCategory) && $mainCategory->subcategories->count() > 0)
+        <div class="border-bottom mb-4 pb-4">
+            <h5 class="font-weight-semi-bold mb-4">Filter by Categories</h5>
+            <div>
+                @foreach($mainCategory->subcategories as $subcategory)
+                    <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-2">
+                        <input type="checkbox"
+                            name="category[]"
+                            id="category{{ $subcategory->id }}"
+                            value="{{ $subcategory->id }}"
+                            class="custom-control-input filterAjax"
+                            {{ in_array($subcategory->id, $selectedCategories) ? 'checked' : '' }}>
+                        <label class="custom-control-label" for="category{{ $subcategory->id }}">
+                            {{ $subcategory->name }}
+                        </label>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+    <!-- Categories Filter End -->
+
     <!-- Availability start -->
     <div class="border-bottom mb-4 pb-4">
         <h5 class="font-weight-semi-bold mb-4">Availability</h5>

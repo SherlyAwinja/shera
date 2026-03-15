@@ -63,13 +63,31 @@ class ProductsFilter extends Model
             return [];
         }
 
-        return Product::select('family_color')
+        $colorRows = Product::select('product_color')
             ->whereIn('category_id', $catIds)
-            ->whereNotNull('family_color')
-            ->where('family_color', '!=', '')
-            ->groupBy('family_color')
-            ->pluck('family_color')
+            ->whereNotNull('product_color')
+            ->where('product_color', '!=', '')
+            ->pluck('product_color')
             ->toArray();
+
+        $colorMap = [];
+        foreach ($colorRows as $row) {
+            $values = preg_split('/\s*,\s*/', (string) $row, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($values as $value) {
+                $trimmed = trim((string) $value);
+                if ($trimmed === '') {
+                    continue;
+                }
+                $normalized = strtolower($trimmed);
+                if (!isset($colorMap[$normalized])) {
+                    $colorMap[$normalized] = $trimmed;
+                }
+            }
+        }
+
+        $colors = array_values($colorMap);
+        natcasesort($colors);
+        return array_values($colors);
     }
 
     public static function getSizes($catIds)

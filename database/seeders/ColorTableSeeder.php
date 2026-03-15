@@ -13,13 +13,23 @@ class ColorTableSeeder extends Seeder
      */
     public function run(): void
     {
-        $colors = ['Red', 'Green', 'Blue', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 
-        'Black', 'White', 'Grey', 'Multi'];
+        $colors = [
+            'Red', 'Green', 'Blue', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown',
+            'Black', 'White', 'Grey', 'Multi',
+            'Navy', 'Maroon', 'Beige', 'Cream', 'Teal', 'Turquoise', 'Magenta', 'Cyan',
+            'Olive', 'Khaki', 'Lavender', 'Gold', 'Silver', 'Charcoal', 'Tan', 'Mustard',
+            'Burgundy', 'Peach', 'Coral', 'Mint', 'Lime', 'Rust', 'Ivory',
+            'Azure', 'Blush', 'Bronze', 'Camel', 'Chocolate', 'Copper', 'Denim', 'Emerald',
+            'Fuchsia', 'Indigo', 'Jade', 'Lemon', 'Lilac', 'Mauve', 'Ochre', 'Onyx',
+            'Plum', 'Rose', 'Ruby', 'Saffron', 'Sage', 'Sand', 'Scarlet', 'Slate',
+            'Taupe', 'Topaz', 'Violet', 'Wine', 'Neon', 'Pastel',
+        ];
+
         foreach ($colors as $colorName) {
-            $color = new Color;
-            $color->name = $colorName;
-            $color->status = 1;
-            $color->save();
+            Color::firstOrCreate(
+                ['name' => $colorName],
+                ['status' => 1]
+            );
         }
     }
 }

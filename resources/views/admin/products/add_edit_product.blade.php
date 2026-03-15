@@ -81,6 +81,54 @@
                             </div>
 
                             <div class="mb-3">
+                                <label for="other_categories">Show in Other Categories</label>
+                                <select name="other_categories[]" id="other_categories" class="form-control" multiple>
+                                    @foreach($getCategories as $cat)
+                                        <!-- Main Category -->
+                                        <option value="{{ $cat['id'] }}"
+                                            @if(!empty($product) && isset($product->otherCategories) && in_array($cat['id'], $product->otherCategories->pluck('category_id')->toArray()))
+                                                selected
+                                            @endif
+                                        >
+                                            {{ $cat['name'] }}
+                                        </option>
+
+                                        <!-- Subcategories -->
+                                        @if(!empty($cat['subcategories']))
+                                            @foreach($cat['subcategories'] as $subcat)
+                                                <option value="{{ $subcat['id'] }}"
+                                                    @if(!empty($product) && isset($product->otherCategories) && in_array($subcat['id'], $product->otherCategories->pluck('category_id')->toArray()))
+                                                        selected
+                                                    @endif
+                                                >
+                                                    &nbsp;&nbsp;&raquo; {{ $subcat['name'] }}
+                                                </option>
+
+                                                <!-- Sub-Subcategories -->
+                                                @if(!empty($subcat['subcategories']))
+                                                    @foreach($subcat['subcategories'] as $subsubcat)
+                                                        <option value="{{ $subsubcat['id'] }}"
+                                                            @if(!empty($product) && isset($product->otherCategories) && in_array($subsubcat['id'], $product->otherCategories->pluck('category_id')->toArray()))
+                                                                selected
+                                                            @endif
+                                                        >
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;&raquo;&raquo; {{ $subsubcat['name'] }}
+                                                        </option>
+                                                    @endforeach
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    @endforeach
+                                </select>
+
+                                <!-- Select All and Deselect All Buttons -->
+                                <div class="mt-2">
+                                    <button type="button" id="selectAll" class="btn btn-sm btn-primary">Select All</button>
+                                    <button type="button" id="deselectAll" class="btn btn-sm btn-secondary">Deselect All</button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="brand_id">Select Brand*</label>
                                 <select name="brand_id" class="form-control">
                                     <option value="">Select</option>
@@ -102,20 +150,34 @@
                                 <input type="text" class="form-control" id="product_code" name="product_code" placeholder="Enter Product Code" value="{{ old('product_code', $product->product_code ?? '') }}">
                             </div>
 
+                            <?php $productColors = \App\Models\Color::colors(); ?>
+                            @php
+                                $selectedProductColors = old('product_color');
+                                if (is_null($selectedProductColors)) {
+                                    $selectedProductColors = isset($product->product_color)
+                                        ? preg_split('/\s*,\s*/', (string) $product->product_color, -1, PREG_SPLIT_NO_EMPTY)
+                                        : [];
+                                } elseif (!is_array($selectedProductColors)) {
+                                    $selectedProductColors = preg_split('/[~,]/', (string) $selectedProductColors, -1, PREG_SPLIT_NO_EMPTY);
+                                }
+
+                                $selectedProductColors = array_values(array_unique(array_filter(array_map(
+                                    fn ($value) => trim((string) $value),
+                                    (array) $selectedProductColors
+                                ))));
+                            @endphp
                             <div class="mb-3">
                                 <label class="form-label" for="product_color">Product Color*</label>
-                                <input type="text" class="form-control" id="product_color" name="product_color" placeholder="Enter Product Color" value="{{ old('product_color', $product->product_color ?? '') }}">
-                            </div>
-
-                            <?php $familyColors = \App\Models\Color::colors(); ?>
-                            <div class="mb-3">
-                                <label class="form-label" for="family_color">Family Color*</label>
-                                <select name="family_color" class="form-control">
-                                    <option value="">Please Select</option>
-                                    @foreach($familyColors as $color)
-                                    <option value="{{  $color->name }}" @if(isset($product['family_color']) && $product['family_color'] == $color->name) selected @endif>{{ $color->name }}</option>
+                                <select name="product_color[]" id="product_color" class="form-control" multiple>
+                                    @foreach($productColors as $color)
+                                    <option value="{{ $color->name }}" {{ in_array($color->name, $selectedProductColors, true) ? 'selected' : '' }}>{{ $color->name }}</option>
                                     @endforeach
                                 </select>
+                                <div class="mt-2">
+                                    <button type="button" id="colorSelectAll" class="btn btn-sm btn-primary">Select All</button>
+                                    <button type="button" id="colorDeselectAll" class="btn btn-sm btn-secondary">Deselect All</button>
+                                </div>
+                                <small class="text-muted">Pick one or more colors.</small>
                             </div>
 
                             <div class="mb-3">
@@ -327,6 +389,16 @@
                                                 <img src="{{ url('product-image/thumbnail/'.$img->image) }}"
                                                 style="width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                                             </a>
+                                            <div class="mt-2">
+                                                <select name="product_image_color[{{ $img->id }}]" class="form-select form-select-sm">
+                                                    <option value="">No color</option>
+                                                    @foreach($productColors as $color)
+                                                        <option value="{{ $color->name }}" {{ ($img->color ?? '') === $color->name ? 'selected' : '' }}>
+                                                            {{ $color->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                             <a href="javascript:void(0)" class="confirmDelete text-danger"
                                                data-module="product-image"
                                                data-id="{{ $img->id }}"

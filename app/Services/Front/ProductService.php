@@ -13,7 +13,7 @@ use App\Models\Filter;
 
 class ProductService
 {
-    public function getCategotyListingData($url)
+    public function getCategotyListingDataOld($url)
     {
         $categoryInfo = Category::categoryDetails($url);
 
@@ -40,6 +40,58 @@ class ProductService
             'catIds' => $categoryInfo['catIds'],
             'filters' => $filters,
         ];
+    }
+
+    public function getCategoryListingData($url)
+    {
+        // Get category details
+        $categoryInfo = Category::categoryDetails($url);
+
+        // All category + subcategory IDs
+        $catIds = $categoryInfo['catIds'] ?? [];
+
+        // Build the product query
+        $query = Product::with(['product_images'])
+            ->where('status', 1)
+            ->where(function ($q) use ($catIds) {
+                // Condition 1: product's main category
+                $q->whereIn('category_id', $catIds)
+                // Condition 2: product assigned via pivot table products_categories
+                ->orWhereHas('categories', function ($subQ) use ($catIds) {
+                    $subQ->whereIn('categories.id', $catIds);
+                });
+            });
+
+        // Apply additional filters (color, size, brand, dynamic filters, etc.)
+        $query = $this->applyFilters($query);
+
+        // Paginate products with query string
+        $products = $query->paginate(8)->withQueryString();
+
+        // Fetch filters with their values
+        $filters = Filter::with(['values' => function($q) {
+                $q->where('status', 1)->orderBy('sort', 'asc');
+            }])
+            ->where('status', 1)
+            ->orderBy('sort', 'asc')
+            ->get();
+
+        // Return structured data for the view
+        return [
+            'categoryDetails'   => $categoryInfo['categoryDetails'] ?? null,
+            'categoryProducts'  => $products,
+            'breadcrumbs'       => $categoryInfo['breadcrumbs'] ?? [],
+            'selectedSort'      => request()->get('sort', 'product_latest'),
+            'url'               => $url,
+            'catIds'            => $catIds,
+            'filters'           => $filters,
+        ];
+    }
+
+    // Backward-compatible alias (typo kept for existing controller usage).
+    public function getCategotyListingData($url)
+    {
+        return $this->getCategoryListingData($url);
     }
 
     private function applyFilters($query)
@@ -74,8 +126,14 @@ class ProductService
 
         // Apply color filter
         $colors = $this->parseFilterValues('color');
+        $colors = array_values(array_unique(array_filter(array_map('trim', $colors))));
         if (count($colors) > 0) {
-                $query->whereIn('family_color', $colors);
+            $normalizedProductColorColumn = "REPLACE(REPLACE(product_color, ', ', ','), ' ,', ',')";
+            $query->where(function ($colorQuery) use ($colors, $normalizedProductColorColumn) {
+                foreach ($colors as $color) {
+                    $colorQuery->orWhereRaw("FIND_IN_SET(?, {$normalizedProductColorColumn}) > 0", [$color]);
+                }
+            });
         }
 
         // Apply size filter
@@ -191,12 +249,31 @@ class ProductService
             }
         }
 
+        // Apply Category Filter
+        if (request()->has('category') && !empty(request()->get('category'))) {
+            // Get selected category IDs from request
+            $categoryIds = explode('~', request()->get('category'));
+
+            // Get IDs of child categories whose parent is in the selected categories
+            $parentIds = Category::whereIn('parent_id', $categoryIds)
+                                ->pluck('id')
+                                ->toArray();
+
+            // Merge parent and selected category IDs
+            $allCatIds = array_merge($parentIds, $categoryIds);
+
+            // Apply filter to the query if there are any categories
+            if (!empty($allCatIds)) {
+                $query->whereIn('category_id', $allCatIds);
+            }
+        }
+
         // Apply Dynamic Admin Filters
         $filterParams = request()->all();
 
         foreach ($filterParams as $filterKey => $filterValues) {
             // Skip known default filters
-            if (in_array($filterKey, ['color', 'size', 'brand', 'price', 'gender', 'availability', 'occasion', 'sort', 'page', 'json'], true)) {
+            if (in_array($filterKey, ['color', 'size', 'brand', 'price', 'gender', 'availability', 'occasion', 'sort', 'page', 'json', 'category', 'subcategory'], true)) {
                 continue;
             }
 
@@ -223,25 +300,47 @@ class ProductService
     public function searchProducts($query, $limit = 6)
     {
         $terms = explode(' ', str_replace(['-', '_'], ' ', $query));
+        $fullQuery = trim((string) $query);
 
-        return Product::with([
+        $searchQuery = Product::with([
             'product_images' => function ($q) {
                 $q->where('status', 1)->orderBy('sort', 'asc');
             }
         ])
         ->where('status', 1)
         ->where('stock', '>', 0)
-        ->where(function ($q) use ($terms) {
+        ->where(function ($q) use ($terms, $fullQuery) {
+            if ($fullQuery !== '') {
+                $q->orWhere('search_keywords', 'LIKE', '%' . $fullQuery . '%');
+            }
             foreach ($terms as $term) {
                 if (!empty($term)) {
                     $q->orWhere('product_name', 'LIKE', '%' . $term . '%')
                     ->orWhere('product_code', 'LIKE', '%' . $term . '%')
-                    ->orWhere('product_color', 'LIKE', '%' . $term . '%');
+                    ->orWhere('product_color', 'LIKE', '%' . $term . '%')
+                    ->orWhere('search_keywords', 'LIKE', '%' . $term . '%');
                 }
             }
-        })
-        ->limit($limit)
-        ->get();
+        });
+
+        if ($fullQuery !== '') {
+            $fullQueryLike = '%' . $fullQuery . '%';
+            $searchQuery->orderByRaw(
+                "CASE
+                    WHEN search_keywords LIKE ? THEN 0
+                    WHEN product_name LIKE ? THEN 1
+                    WHEN product_code LIKE ? THEN 2
+                    WHEN product_color LIKE ? THEN 3
+                    ELSE 4
+                 END",
+                [$fullQueryLike, $fullQueryLike, $fullQueryLike, $fullQueryLike]
+            );
+        }
+
+        return $searchQuery
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
     }
 
     private function parseFilterValues(string $key): array

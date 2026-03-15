@@ -3,12 +3,14 @@
 namespace App\Services\Admin;
 
 use App\Models\Product;
+use App\Models\ProductsCategory;
 use App\Models\AdminsRole;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
 use App\Models\ProductsImage;
 use App\Models\ProductsAttribute;
 use Illuminate\Validation\ValidationException;
+use Algolia\AlgoliaSearch\Exceptions\UnreachableException;
 use Illuminate\Support\Facades\Schema;
 
 
@@ -87,8 +89,16 @@ class ProductService
         $product->brand_id = $data['brand_id'];
         $product->product_name = $data['product_name'];
         $product->product_code = $data['product_code'];
-        $product->product_color = $data['product_color'];
-        $product->family_color = $data['family_color'];
+        $productColorInput = $data['product_color'] ?? [];
+        if (!is_array($productColorInput)) {
+            $productColorInput = preg_split('/[~,]/', (string) $productColorInput, -1, PREG_SPLIT_NO_EMPTY);
+        }
+        $productColors = array_values(array_unique(array_filter(array_map(
+            fn ($value) => trim((string) $value),
+            (array) $productColorInput
+        ))));
+        $product->product_color = empty($productColors) ? null : implode(',', $productColors);
+
         if (Schema::hasColumn('products', 'gender')) {
             $product->gender = $data['gender'] ?? null;
         }
@@ -181,7 +191,24 @@ class ProductService
             $product->product_video = $data['product_video_hidden'];
         }
 
-        $product->save();
+        $this->saveProductWithScoutFallback($product);
+
+        // Sync other categories for this product
+        if (!empty($data['other_categories']) && is_array($data['other_categories'])) {
+            // Clear old records
+            ProductsCategory::where('product_id', $product->id)->delete();
+
+            // Insert new ones
+            foreach ($data['other_categories'] as $catId) {
+                ProductsCategory::create([
+                    'product_id'  => $product->id,
+                    'category_id' => $catId,
+                ]);
+            }
+        } else {
+            // If none selected, clear existing records
+            ProductsCategory::where('product_id', $product->id)->delete();
+        }
 
         // Sync filter values for this product
         if(!empty($data['filter_values']) && is_array($data['filter_values'])) {
@@ -219,6 +246,16 @@ class ProductService
                     'sort' => $index,
                     'status' => 1,
                 ]);
+            }
+        }
+
+        // Update colors for existing product images (if provided)
+        if (!empty($data['product_image_color']) && is_array($data['product_image_color'])) {
+            foreach ($data['product_image_color'] as $imageId => $color) {
+                $colorValue = trim((string) $color);
+                ProductsImage::where('id', $imageId)
+                    ->where('product_id', $product->id)
+                    ->update(['color' => $colorValue !== '' ? $colorValue : null]);
             }
         }
 
@@ -309,6 +346,25 @@ class ProductService
                     'size' => 'Size already exists. Please add another size.',
                 ]);
             }
+        }
+    }
+
+    private function saveProductWithScoutFallback(Product $product): void
+    {
+        $shouldSkipScoutSync = app()->environment('local') && config('scout.driver') === 'algolia';
+
+        if ($shouldSkipScoutSync) {
+            Product::withoutSyncingToSearch(function () use ($product) {
+                $product->save();
+            });
+
+            return;
+        }
+
+        try {
+            $product->save();
+        } catch (UnreachableException $exception) {
+            report($exception);
         }
     }
 

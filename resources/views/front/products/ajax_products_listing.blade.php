@@ -45,8 +45,75 @@
             @php
                 $fallbackImage = asset('front/images/products/no-image.jpg');
                 $image = '';
+                $selectedColors = request()->has('color')
+                    ? preg_split('/[~,]/', request()->get('color'))
+                    : [];
+                $selectedColors = array_values(array_filter(array_map(
+                    fn ($value) => strtolower(trim((string) $value)),
+                    (array) $selectedColors
+                )));
 
-                if (!empty($product['main_image'])) {
+                $productColors = preg_split('/\s*,\s*/', (string) ($product['product_color'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+                $productColors = array_values(array_filter(array_map('trim', $productColors)));
+                $productColorMap = array_map('strtolower', $productColors);
+
+                $activeColor = null;
+                foreach ($selectedColors as $color) {
+                    if (in_array($color, $productColorMap, true)) {
+                        $activeColor = $color;
+                        break;
+                    }
+                }
+
+                $activeColorLabel = null;
+                if ($activeColor !== null) {
+                    foreach ($productColors as $color) {
+                        if (strtolower($color) === $activeColor) {
+                            $activeColorLabel = $color;
+                            break;
+                        }
+                    }
+                    if ($activeColorLabel === null) {
+                        $activeColorLabel = ucfirst($activeColor);
+                    }
+                }
+
+                $matchedImageName = null;
+                $activeColorToken = $activeColor ? preg_replace('/[^a-z0-9]+/i', '', $activeColor) : '';
+                if ($activeColor !== null && !empty($product['product_images'])) {
+                    foreach ($product['product_images'] as $img) {
+                        if (!empty($img['color']) && strtolower((string) $img['color']) === $activeColor) {
+                            $matchedImageName = $img['image'] ?? null;
+                            break;
+                        }
+                    }
+                }
+
+                if ($matchedImageName === null && $activeColorToken !== '') {
+                    $imageCandidates = [];
+                    if (!empty($product['main_image'])) {
+                        $imageCandidates[] = $product['main_image'];
+                    }
+                    if (!empty($product['product_images'])) {
+                        foreach ($product['product_images'] as $img) {
+                            if (!empty($img['image'])) {
+                                $imageCandidates[] = $img['image'];
+                            }
+                        }
+                    }
+
+                    foreach ($imageCandidates as $candidate) {
+                        $candidateToken = preg_replace('/[^a-z0-9]+/i', '', strtolower((string) $candidate));
+                        if ($candidateToken !== '' && str_contains($candidateToken, $activeColorToken)) {
+                            $matchedImageName = $candidate;
+                            break;
+                        }
+                    }
+                }
+
+                if (!empty($matchedImageName)) {
+                    $image = asset('product-image/medium/'.$matchedImageName);
+                } elseif (!empty($product['main_image'])) {
                     $image = asset('product-image/medium/'.$product['main_image']);
                 } elseif (!empty($product['product_images'][0]['image'])) {
                     $image = asset('product-image/medium/'.$product['product_images'][0]['image']);
@@ -61,6 +128,11 @@
                 </div>
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3 product-grid-body">
                     <h6 class="text-truncate mb-3 product-title">{{ $product['product_name'] }}</h6>
+                    @if(!empty($activeColorLabel) && !empty($selectedColors))
+                        <div class="small text-muted mb-2">
+                            Color: {{ $activeColorLabel }}
+                        </div>
+                    @endif
                     <div class="d-flex justify-content-center align-items-center product-price-wrap">
                         <h6 class="mb-0 product-price">KSH {{ number_format($product['final_price']) }}</h6>
                         @if($product['product_discount'] > 0)

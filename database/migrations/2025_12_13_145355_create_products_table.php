@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('product_code');
         
             $table->string('product_color');
-            $table->string('family_color');
             $table->string('group_code')->nullable();
         
             $table->float('product_price');

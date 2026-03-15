@@ -9658,11 +9658,13 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .category-card {
-  padding: 1.5rem;
-  border-radius: 18px;
+  padding: 0;
+  border-radius: 16px;
   background: #fff;
   box-shadow: 0 10px 22px rgba(28, 28, 28, 0.08);
   transition: transform 0.28s ease, box-shadow 0.28s ease;
+  text-align: center;
+  overflow: hidden;
 }
 
 .home-page .category-card:hover {
@@ -9671,7 +9673,7 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .category-card .cat-img {
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 .home-page .home-categories [class*="col-"] {
@@ -9684,16 +9686,31 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .home-categories .category-card .cat-img {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 4 / 5;
+  min-height: 220px;
   background: linear-gradient(180deg, #f8f9fc 0%, #f2f4fa 100%);
+  padding: 0.75rem;
+  margin-bottom: 0;
 }
 
 .home-page .home-categories .category-card .cat-img img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  transform: none;
+}
+
+.home-page .home-categories .category-card:hover .cat-img img {
+  transform: none;
+}
+
+.home-page .home-categories .category-card .category-name {
+  padding: 0.85rem 1rem 1.1rem;
+  margin: 0;
 }
 
 .home-page .home-categories .categories-carousel .owl-stage {
@@ -9741,6 +9758,11 @@ a.text-dark:hover, a.text-dark:focus {
 
 .home-page .category-name {
   letter-spacing: 0.2px;
+  min-height: 2.6rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .home-page .offer-card {

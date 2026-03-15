@@ -1,10 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\Front;
-
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Support\Facades\Route;
 use App\Services\Front\ProductService;
 
@@ -87,23 +87,39 @@ class ProductController extends Controller
 
     public function ajaxSearch(Request $request)
     {
-        $query = $request->get('q');
-
-        // Avoid searching for very short terms
+        $query = trim($request->get("q"));
         if (strlen($query) < 3) {
-            return "";
+            return ""; // Avoid searching for short terms
         }
 
+        $usedAlgolia = false;
+
+        // Step 1: DB search
         $products = $this->productService->searchProducts($query, 6);
 
+        // Step 2: Fallback to Algolia if DB search returns empty
+        if ($products->isEmpty()) {
+            $isAlgoliaConfigured = config('scout.driver') === 'algolia' &&
+                !empty(config('scout.algolia.id')) &&
+                !empty(config('scout.algolia.secret'));
+
+            if ($isAlgoliaConfigured) {
+                try {
+                    $products = Product::search($query)->take(6)->get();
+                    $usedAlgolia = true;
+                } catch (\Throwable $e) {
+                    $usedAlgolia = false;
+                }
+            }
+        }
+
+        // Step 3: Build HTML output
         $output = "";
-
         foreach ($products as $product) {
-
-            // Select image: main image, gallery image, or fallback
+            // Determine image
             if (!empty($product->main_image)) {
                 $image = asset('front/images/products/' . $product->main_image);
-            } elseif ($product->product_images->isNotEmpty()) {
+            } elseif (!empty($product->product_images) && $product->product_images->isNotEmpty()) {
                 $image = asset('front/images/products/' . $product->product_images->first()->image);
             } else {
                 $image = asset('front/images/products/no-image.jpg');
@@ -112,33 +128,23 @@ class ProductController extends Controller
             $output .= '
             <div class="search-result-item py-2 border-bottom" style="max-width:600px; margin:10px;">
                 <div class="row no-gutters align-items-center">
-
                     <div class="col-auto pr-2">
                         <a href="' . url('product/' . $product->id) . '">
-                            <img src="' . $image . '" alt="' . $product->product_name . '"
-                                style="width:60px; height:60px; object-fit:cover; border-radius:5px;">
+                            <img src="' . $image . '" alt="' . $product->product_name . '" style="width:60px; height:60px; object-fit:cover; border-radius:5px;">
                         </a>
                     </div>
-
                     <div class="col">
                         <h6 class="mb-1" style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             ' . $product->product_name . '
                         </h6>
-
                         <div class="d-flex align-items-center">
                             <span class="text-primary font-weight-bold">KSH.' . $product->final_price . '</span>';
-
             if ($product->product_discount > 0) {
-                $output .= '
-                            <small class="text-muted ml-2">
-                                <del>KSH.' . $product->product_price . '</del>
-                            </small>';
+                $output .= '<small class="text-muted ml-2"><del>KSH.' . $product->product_price . '</del></small>';
             }
-
             $output .= '
                         </div>
                     </div>
-
                     <div class="col-auto pl-2 text-right">
                         <a href="' . url('product/' . $product->id) . '" class="btn btn-sm btn-outline-primary" title="View">
                             <i class="fas fa-eye"></i>
@@ -147,11 +153,20 @@ class ProductController extends Controller
                             <i class="fas fa-shopping-cart"></i>
                         </a>
                     </div>
-
                 </div>
             </div>';
         }
 
-        return $output;
+        // Step 4: Algolia badge if used
+        if ($usedAlgolia && $products->count()) {
+            $output .= '<div class="text-right mt-2">
+                            <a href="https://www.algolia.com/" target="_blank" rel="noopener">
+                                <img src="/front/images/algolia.png" alt="Search by Algolia" style="height: 25px;">
+                            </a>
+                        </div>';
+        }
+
+        return $output ?: '<div align="center"></div>';
     }
+
 }

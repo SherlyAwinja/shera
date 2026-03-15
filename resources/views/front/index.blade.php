@@ -64,24 +64,19 @@
 <!-- Categories Start -->
 <div class="container-fluid pt-2 home-categories">
     <div class="row px-xl-5 pb-3">
-        <div class="col-12">
-            <div class="owl-carousel categories-carousel">
-                @foreach($categories as $category)
-                    @php
-                        $image=!empty($category['image']) ? asset('front/images/categories/'.$category['image']) : asset('front/images/categories/no-image.jpg');
-                    @endphp
-                <div class="category-slide-item">
-                    <div class="cat-item d-flex flex-column border mb-0 category-card">
-                        <p class="text-right category-count">{{ $category['product_count'] }} Products</p>
-                        <a href="{{ url('category/'.$category['url']) }}" class="cat-img position-relative overflow-hidden mb-3">
-                            <img class="img-fluid" src="{{ $image }}" alt="{{ $category['name'] }}">
-                        </a>
-                        <h5 class="font-weight-semi-bold m-0 category-name">{{ $category['name'] }}</h5>
-                    </div>
+        @foreach($categories as $category)
+            @php
+                $image=!empty($category['image']) ? asset('front/images/categories/'.$category['image']) : asset('front/images/categories/no-image.jpg');
+            @endphp
+            <div class="col-6 col-md-4 col-lg-3 pb-4 d-flex">
+                <div class="cat-item d-flex flex-column border mb-0 category-card w-100">
+                    <a href="{{ url('category/'.$category['url']) }}" class="cat-img position-relative overflow-hidden mb-3">
+                        <img class="img-fluid" src="{{ $image }}" alt="{{ $category['name'] }}">
+                    </a>
+                    <h5 class="font-weight-semi-bold m-0 category-name">{{ $category['name'] }}</h5>
                 </div>
-                @endforeach
             </div>
-        </div>
+        @endforeach
     </div>
 </div>
 <!-- Categories End -->

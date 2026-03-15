@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
 class Product extends Model
 {
+    use Searchable;
+
     protected $casts = [
         'dimensions' => 'array',
     ];
@@ -39,5 +42,26 @@ class Product extends Model
     public function filtersValues()
     {
         return $this->filterValues();
+    }
+
+    public function toSearchableArray()
+    {
+        $categoryName = $this->category->name ?? null;
+        return [
+            'id' => $this->id,
+            'product_name'=> $this->product_name,
+            'category' => $categoryName,
+            'search_keywords' => $this->search_keywords
+        ];
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'products_categories', 'product_id', 'category_id');
+    }
+
+    public function otherCategories()
+    {
+        return $this->hasMany(ProductsCategory::class, 'product_id');
     }
 }
