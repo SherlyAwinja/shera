@@ -30,7 +30,7 @@
 <!-- Carousel End -->
 
 <!-- Featured Start -->
-<div class="container-fluid pt-5 home-features">
+<div class="container-fluid home-features home-section">
     <div class="row px-xl-5 pb-3">
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
             <div class="d-flex align-items-center border mb-4 feature-card">
@@ -62,7 +62,7 @@
 
 @if(count($categories) > 0)
 <!-- Categories Start -->
-<div class="container-fluid pt-2 home-categories">
+<div class="container-fluid home-categories home-section">
     <div class="row px-xl-5 pb-3">
         @foreach($categories as $category)
             @php
@@ -84,7 +84,7 @@
 
 @if(count($homeFixBanners) > 0)
 <!-- Offer Start -->
-<div class="container-fluid offer pt-2 home-offers">
+<div class="container-fluid offer home-offers home-section">
     <div class="row px-xl-5">
         @foreach($homeFixBanners as $fixBanner)
         <div class="col-md-6 pb-4">
@@ -107,7 +107,7 @@
 
 @if(count($featuredProducts) > 0)
 <!-- Products Start -->
- <div class="container-fluid pt-3 home-featured-products">
+ <div class="container-fluid home-featured-products home-section">
     <div class="text-center mb-4">
         <h2 class="section-title px-5 home-section-title"><span class="px-2">Featured Products</span></h2>
 
@@ -130,9 +130,9 @@
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
                     <h6 class="text-truncate mb-3">{{ $product['product_name'] }}</h6>
                     <div class="d-flex justify-content-center">
-                        <h6>KSH{{ $product['final_price'] }}</h6>
+                        <h6 class="product-price-current">KSH{{ $product['final_price'] }}</h6>
                         @if($product['product_discount'] > 0)
-                        <h6 class="text-muted ml-2"><del>KSH{{ $product['product_price'] }}</del></h6>
+                        <h6 class="text-muted ml-2 product-price-old"><del>KSH{{ $product['product_price'] }}</del></h6>
                         @endif
                     </div>
                 </div>
@@ -140,7 +140,7 @@
                     <a href="#" class="btn btn-sm text-dark p-0">
                         <i class="fas fa-eye text-primary mr-1"></i>View Detail
                     </a>
-                    <a href="javascript:void(0)" class="btn btn-sm text-dark p-0 addToCartBtn" data-id="{{ $product['id'] }}">
+                    <a href="javascript:void(0)" class="btn btn-sm text-dark p-0 addToCartBtn product-add-cart" data-id="{{ $product['id'] }}">
                         <i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart
                     </a>
                 </div>
@@ -153,7 +153,7 @@
 @endif
 
 <!-- Subscribe Start -->
-<div class="container-fluid bg-secondary my-2 home-newsletter">
+<div class="container-fluid bg-secondary home-newsletter home-section">
     <div class="row justify-content-md-center py-5 px-xl-5">
         <div class="col-md-6 col-12 py-5">
             <div class="text-center mb-2 pb-2 newsletter-panel">
@@ -176,7 +176,7 @@
 
 @if(count($newArrivalProducts) > 0)
 <!-- Products Start -->
-<div class="container-fluid pt-4 home-new-arrivals">
+<div class="container-fluid home-new-arrivals home-section">
     <div class="text-center mb-4">
         <h2 class="section-title px-5 home-section-title"><span class="px-2">New Arrivals</span></h2>
     </div>
@@ -200,15 +200,15 @@
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
                     <h6 class="text-truncate mb-3">{{ $product['product_name'] }}</h6>
                     <div class="d-flex justify-content-center">
-                        <h6>KSH{{$product['final_price']}}</h6>
+                        <h6 class="product-price-current">KSH{{$product['final_price']}}</h6>
                         @if($product['product_discount'] > 0)
-                            <h6 class="text-muted ml-2"><del>KSH{{$product['product_price']}}</del></h6>
+                            <h6 class="text-muted ml-2 product-price-old"><del>KSH{{$product['product_price']}}</del></h6>
                         @endif
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between bg-light border">
                     <a href="" class="btn btn-sm text-dark p-0"><i class="fas fa-eye text-primary mr-1"></i>View Detail</a>
-                    <a href="" class="btn btn-sm text-dark p-0"><i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart</a>
+                    <a href="" class="btn btn-sm text-dark p-0 product-add-cart"><i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart</a>
                 </div>
             </div>
         </div>
@@ -221,15 +221,42 @@
  @endif
 
 
-@if(count($logoBanners) > 0)
+@php
+    $vendorType = null;
+    $vendorLogos = [];
+    if (!empty($brandLogos) && count($brandLogos) > 0) {
+        $vendorType = 'brand';
+        $vendorLogos = $brandLogos;
+    } elseif (!empty($logoBanners) && count($logoBanners) > 0) {
+        $vendorType = 'banner';
+        $vendorLogos = $logoBanners;
+    }
+@endphp
+
+@if(count($vendorLogos) > 0)
 <!-- Vendor Start -->
-<div class="container-fluid py-2 home-vendors">
+<div class="container-fluid home-vendors home-section">
     <div class="row px-xl-5">
         <div class="col">
             <div class="owl-carousel vendor-carousel">
-                @foreach($logoBanners as $logo)
+                @foreach($vendorLogos as $logo)
+                    @php
+                        if ($vendorType === 'brand') {
+                            $logoPath = !empty($logo['logo'])
+                                ? asset('front/images/logos/'.$logo['logo'])
+                                : (!empty($logo['image'])
+                                    ? asset('front/images/brands/'.$logo['image'])
+                                    : asset('front/images/products/no-image.jpg'));
+                            $logoAlt = $logo['name'] ?? 'brand';
+                        } else {
+                            $logoPath = !empty($logo['image'])
+                                ? asset('front/images/banners/'.$logo['image'])
+                                : asset('front/images/products/no-image.jpg');
+                            $logoAlt = $logo['title'] ?? 'logo';
+                        }
+                    @endphp
                 <div class="vendor-item border p-4 vendor-card">
-                    <img src="{{ asset('front/images/banners/'.$logo['image']) }}" alt="{{ $logo['title'] ?? 'logo' }}">
+                    <img src="{{ $logoPath }}" alt="{{ $logoAlt }}">
                 </div>
                 @endforeach
             </div>

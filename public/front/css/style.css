@@ -9741,12 +9741,14 @@ a.text-dark:hover, a.text-dark:focus {
   margin: 0 5px;
   display: block;
   border-radius: 999px;
-  background: rgba(139, 28, 45, 0.28);
+  background: #0F6A66;
+  opacity: 0.35;
 }
 
 .home-page .home-categories .owl-dot.active span,
 .home-page .home-categories .owl-dot:hover span {
-  background: #8B1C2D;
+  background: #0F6A66;
+  opacity: 1;
 }
 
 .home-page .category-count {
@@ -9829,8 +9831,34 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .home-newsletter {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.home-page .home-section {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.home-page .home-newsletter.home-section {
+  padding-bottom: 0.4rem;
+  padding-top: 0.4rem;
+}
+
+.home-page .home-new-arrivals.home-section {
+  padding-top: 0.4rem;
+}
+
+.home-page .home-featured-products.home-section {
+  padding-bottom: 0.4rem;
+}
+
+.home-page .home-featured-products {
+  padding-bottom: 0.2rem;
+}
+
+.home-page .home-new-arrivals {
+  padding-top: 0.2rem;
 }
 
 .home-page .newsletter-panel {
@@ -10166,12 +10194,14 @@ a.text-dark:hover, a.text-dark:focus {
   margin: 0 5px;
   display: block;
   border-radius: 999px;
-  background: rgba(139, 28, 45, 0.28);
+  background: #0F6A66;
+  opacity: 0.35;
 }
 
 .home-page .home-new-arrivals .owl-dot.active span,
 .home-page .home-new-arrivals .owl-dot:hover span {
-  background: #8B1C2D;
+  background: #0F6A66;
+  opacity: 1;
 }
 
 /********** Home Page Theme Refresh ************/
@@ -10197,7 +10227,7 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page a:hover {
-  color: var(--home-primary);
+  color: var(--home-accent);
 }
 
 .home-page .bg-secondary {
@@ -10206,18 +10236,19 @@ a.text-dark:hover, a.text-dark:focus {
 
 .home-page .section-title,
 .home-page .home-section-title {
-  color: var(--home-text);
+  color: #D4AF37;
 }
 
 .home-page .section-title::before {
-  background: var(--home-primary);
+  background: #D4AF37;
 }
 
 .home-page .section-title span,
 .home-page .home-section-title span {
   background: var(--home-surface-strong);
-  color: var(--home-text);
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #D4AF37;
+  border: 1px solid #D4AF37;
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.2);
 }
 
 .home-page .hero-control {
@@ -10236,14 +10267,14 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .feature-icon {
-  background: rgba(139, 28, 45, 0.14);
-  color: var(--home-primary) !important;
+  background: #8B1C2D;
+  color: #F5EFE6 !important;
 }
 
 .home-page .home-categories .category-card .cat-img,
 .home-page .home-featured-products .product-card-sleek .product-img,
 .home-page .home-new-arrivals .product-card-sleek .product-img {
-  background: linear-gradient(180deg, #F9F3EA 0%, #F3EADF 100%);
+  background: #F5EFE6;
 }
 
 .home-page .category-count {
@@ -10259,15 +10290,15 @@ a.text-dark:hover, a.text-dark:focus {
 }
 
 .home-page .btn-primary {
-  background-color: var(--home-primary);
-  border-color: var(--home-primary);
+  background-color: #8B1C2D;
+  border-color: #8B1C2D;
   color: #FFFFFF;
 }
 
 .home-page .btn-primary:hover,
 .home-page .btn-primary:focus {
-  background-color: var(--home-primary);
-  border-color: var(--home-primary);
+  background-color: #0F6A66;
+  border-color: #0F6A66;
   color: #FFFFFF;
 }
 
@@ -10278,14 +10309,51 @@ a.text-dark:hover, a.text-dark:focus {
 
 .home-page .btn-outline-primary:hover,
 .home-page .btn-outline-primary:focus {
-  color: var(--home-text);
-  background-color: var(--home-gold);
-  border-color: var(--home-gold);
+  color: #F5EFE6;
+  background-color: var(--home-accent);
+  border-color: var(--home-accent);
 }
 
 .home-page .product-item .btn:hover,
 .home-page .product-card-sleek .card-footer .btn:hover {
-  color: var(--home-primary) !important;
+  color: #0F6A66 !important;
+}
+
+.home-page .product-card-sleek,
+.home-page .product-card-sleek .card-body,
+.home-page .product-card-sleek .card-footer {
+  background: #F5EFE6 !important;
+}
+
+.home-page .product-card-sleek .card-footer.bg-light {
+  background: #F5EFE6 !important;
+}
+
+.home-page .product-price-current {
+  color: #D4AF37;
+  font-weight: 700;
+}
+
+.home-page .product-add-cart {
+  color: #8B1C2D !important;
+}
+
+.home-page .product-add-cart:hover,
+.home-page .product-add-cart:focus {
+  color: #0F6A66 !important;
+}
+
+.home-page .product-card-sleek .card-body .d-flex h6:first-child {
+  color: #D4AF37;
+  font-weight: 700;
+}
+
+.home-page .premium-label,
+.home-page .badge-premium,
+.home-page .label-premium {
+  background-color: #D4AF37;
+  border-color: #D4AF37;
+  color: #1A1A1A;
 }
 
 .home-page .product-card-sleek:hover {
@@ -10919,6 +10987,18 @@ a.text-dark:hover, a.text-dark:focus {
   color: #F5EFE6;
 }
 
+.home-page .btn-outline-secondary {
+  color: #0F6A66;
+  border-color: #0F6A66;
+}
+
+.home-page .btn-outline-secondary:hover,
+.home-page .btn-outline-secondary:focus {
+  color: #F5EFE6;
+  background-color: #0F6A66;
+  border-color: #0F6A66;
+}
+
 .home-page .btn-secondary:hover,
 .home-page .btn-secondary:focus,
 .product-list-page .btn-secondary:hover,
@@ -10928,35 +11008,46 @@ a.text-dark:hover, a.text-dark:focus {
   color: #F5EFE6;
 }
 
-.home-page .btn-primary:hover,
-.home-page .btn-primary:focus,
-.product-list-page .btn-primary:hover,
-.product-list-page .btn-primary:focus,
-.home-page a:hover,
-.product-list-page a:hover {
+.home-page a:hover {
   color: #0F6A66;
 }
 
-.home-page .btn-primary:hover,
-.home-page .btn-primary:focus,
 .product-list-page .btn-primary:hover,
 .product-list-page .btn-primary:focus {
   background-color: #0F6A66;
   border-color: #0F6A66;
 }
 
+.product-list-page .btn-primary:hover,
+.product-list-page .btn-primary:focus,
+.product-list-page a:hover {
+  color: #0F6A66;
+}
+
+.home-page .btn-primary:hover,
+.home-page .btn-primary:focus {
+  background-color: #0F6A66;
+  border-color: #0F6A66;
+}
+
 .home-page .section-title::before,
-.home-page .home-section-title::before,
+.home-page .home-section-title::before {
+  background: #D4AF37;
+}
+
 .product-list-page .section-title::before {
   background: #0F6A66;
 }
 
 .home-page .home-section-title span,
 .product-list-page .container-fluid.bg-secondary {
-  border-color: rgba(15, 106, 102, 0.34);
+  border-color: #8B1C2D;
 }
 
-.home-page .feature-icon,
+.home-page .feature-icon {
+  background: #8B1C2D;
+}
+
 .home-page .home-categories .owl-dot.active span,
 .home-page .home-categories .owl-dot:hover span,
 .home-page .home-new-arrivals .owl-dot.active span,

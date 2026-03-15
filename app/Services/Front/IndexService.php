@@ -5,6 +5,7 @@ namespace App\Services\Front;
 use App\Models\Banner;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Brand;
 
 class IndexService
 {
@@ -25,7 +26,14 @@ class IndexService
             ->orderBy('sort', 'Desc')
             ->get()
             ->toArray();
-        return compact('homeSliderBanners', 'homeFixBanners', 'logoBanners');
+        $brandLogos = Brand::select('id', 'name', 'logo', 'image')
+            ->where('status', 1)
+            ->whereNotNull('logo')
+            ->where('logo', '!=', '')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->toArray();
+        return compact('homeSliderBanners', 'homeFixBanners', 'logoBanners', 'brandLogos');
     }
 
     public function featuredProducts()
