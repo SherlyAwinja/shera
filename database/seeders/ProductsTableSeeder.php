@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Category;
 use App\Models\Product;
 use Carbon\Carbon;
+use Illuminate\Support\Str as SupportStr;
 
 class ProductsTableSeeder extends Seeder
 {
@@ -17,12 +18,14 @@ class ProductsTableSeeder extends Seeder
     {
         $duffleBagsCategory = Category::where('name', 'Duffle Bags')->first();
         if ($duffleBagsCategory) {
-            Product::create ([
+            Product::withoutEvents(function () use ($duffleBagsCategory) {
+                Product::create ([
                 'category_id' => $duffleBagsCategory->id,
                 'brand_id' => 1,
                 'admin_id' => 1,
                 'admin_type' => 'admin',
                 'product_name' => 'Men Duffle Bag',
+                'product_url' => SupportStr::slug('Men Duffle Bag').'-'.uniqid(),
                 'product_code' => 'MDB',
                 'product_color' => 'Olive',
                 'product_price' => 4500,
@@ -55,12 +58,13 @@ class ProductsTableSeeder extends Seeder
                 'updated_at' => Carbon::now(),
             ]);
 
-            Product::create ([
+                Product::create ([
                 'category_id' => $duffleBagsCategory->id,
                 'brand_id' => 1,
                 'admin_id' => 1,
                 'admin_type' => 'admin',
                 'product_name' => 'Women Duffle Bag',
+                'product_url' => SupportStr::slug('Women Duffle Bag').'-'.uniqid(),
                 'product_code' => 'WDB',
                 'product_color' => 'Black',
                 'product_price' => 5000,
@@ -91,7 +95,8 @@ class ProductsTableSeeder extends Seeder
                 'status' => 1,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
-            ]);
+                ]);
+            });
         }
     }
 }

@@ -145,6 +145,13 @@
                                 <input type="text" class="form-control" id="product_name" name="product_name" placeholder="Enter Product Name" value="{{ old('product_name', $product->product_name ?? '') }}">
                             </div>
 
+                            @if(!empty($product->id))
+                                <div class="mb-3">
+                                    <label class="form-label" for="product_url">Product URL*</label>
+                                    <input type="text" class="form-control" id="product_url" name="product_url" value="{{old('product_url', $product->product_url ?? '')}}" placeholder="Enter Product URL">
+                                </div>
+                            @endif
+
                             <div class="mb-3">
                                 <label class="form-label" for="product_code">Product Code*</label>
                                 <input type="text" class="form-control" id="product_code" name="product_code" placeholder="Enter Product Code" value="{{ old('product_code', $product->product_code ?? '') }}">
@@ -165,6 +172,28 @@
                                     fn ($value) => trim((string) $value),
                                     (array) $selectedProductColors
                                 ))));
+
+                                $initialColorStockMap = old('color_stock');
+                                if (is_null($initialColorStockMap)) {
+                                    $initialColorStockMap = $product->color_stock ?? [];
+                                }
+                                if (!is_array($initialColorStockMap)) {
+                                    $initialColorStockMap = [];
+                                }
+
+                                $normalizedColorStockMap = [];
+                                foreach ($selectedProductColors as $selectedColor) {
+                                    $matchedStock = 0;
+
+                                    foreach ($initialColorStockMap as $stockColor => $stockValue) {
+                                        if (strtolower(trim((string) $stockColor)) === strtolower(trim((string) $selectedColor))) {
+                                            $matchedStock = max(0, (int) $stockValue);
+                                            break;
+                                        }
+                                    }
+
+                                    $normalizedColorStockMap[$selectedColor] = $matchedStock;
+                                }
                             @endphp
                             <div class="mb-3">
                                 <label class="form-label" for="product_color">Product Color*</label>
@@ -178,6 +207,43 @@
                                     <button type="button" id="colorDeselectAll" class="btn btn-sm btn-secondary">Deselect All</button>
                                 </div>
                                 <small class="text-muted">Pick one or more colors.</small>
+                            </div>
+
+                            <div class="mb-3" id="color-stock-section">
+                                <label class="form-label">Color Quantities</label>
+                                <div
+                                    id="color-stock-fields"
+                                    data-initial-stocks='@json($normalizedColorStockMap)'
+                                    data-empty-text="Select product colors to set stock quantities."
+                                >
+                                    @forelse($selectedProductColors as $selectedColor)
+                                        @php
+                                            $colorStockInputId = 'color_stock_' . \Illuminate\Support\Str::slug($selectedColor, '_');
+                                        @endphp
+                                        <div class="d-flex align-items-center gap-2 mb-2 color-stock-row" data-color="{{ $selectedColor }}">
+                                            <label class="mb-0 flex-grow-1 font-weight-medium" for="{{ $colorStockInputId }}">
+                                                {{ $selectedColor }}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                class="form-control"
+                                                id="{{ $colorStockInputId }}"
+                                                name="color_stock[{{ $selectedColor }}]"
+                                                value="{{ $normalizedColorStockMap[$selectedColor] ?? 0 }}"
+                                                style="max-width: 170px;"
+                                            >
+                                        </div>
+                                    @empty
+                                        <p class="text-muted mb-0" id="color-stock-empty-state">
+                                            Select product colors to set stock quantities.
+                                        </p>
+                                    @endforelse
+                                </div>
+                                <small class="text-muted">
+                                    Front-end swatch stock uses these quantities when the product does not rely on size-specific stock.
+                                </small>
                             </div>
 
                             <div class="mb-3">

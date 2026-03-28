@@ -70,7 +70,7 @@
             @endphp
             <div class="col-6 col-md-4 col-lg-3 pb-4 d-flex">
                 <div class="cat-item d-flex flex-column border mb-0 category-card w-100">
-                    <a href="{{ url('category/'.$category['url']) }}" class="cat-img position-relative overflow-hidden mb-3">
+                    <a href="/{{ $category['url'] }}" class="cat-img position-relative overflow-hidden mb-3">
                         <img class="img-fluid" src="{{ $image }}" alt="{{ $category['name'] }}">
                     </a>
                     <h5 class="font-weight-semi-bold m-0 category-name">{{ $category['name'] }}</h5>
@@ -121,11 +121,12 @@
                     : (!empty($product['product_images'][0]['image'])
                         ? asset('front/images/products/'.$product['product_images'][0]['image'])
                         : $fallbackImage);
+                $productUrl = !empty($product['product_url']) ? url($product['product_url']) : 'javascript:void(0)';
         @endphp
         <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
             <div class="card product-item border-0 mb-4 product-card-sleek">
                 <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
-                    <a href="#"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
+                    <a href="{{ $productUrl }}"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
                     <h6 class="text-truncate mb-3">{{ $product['product_name'] }}</h6>
@@ -137,7 +138,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between bg-light border">
-                    <a href="#" class="btn btn-sm text-dark p-0">
+                    <a href="{{ $productUrl }}" class="btn btn-sm text-dark p-0">
                         <i class="fas fa-eye text-primary mr-1"></i>View Detail
                     </a>
                     <a href="javascript:void(0)" class="btn btn-sm text-dark p-0 addToCartBtn product-add-cart" data-id="{{ $product['id'] }}">
@@ -191,11 +192,12 @@
                     : (!empty($product['product_images'][0]['image'])
                         ? asset('product-image/medium/'.$product['product_images'][0]['image'])
                         : $fallbackImage);
+                $productUrl = !empty($product['product_url']) ? url($product['product_url']) : 'javascript:void(0)';
         @endphp
         <div class="new-arrival-item">
             <div class="card product-item border-0 mb-0 product-card-sleek new-arrival-card">
                 <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
-                    <a href="#"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
+                    <a href="{{ $productUrl }}"><img class="img-fluid w-100" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
                     <h6 class="text-truncate mb-3">{{ $product['product_name'] }}</h6>
@@ -207,8 +209,8 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between bg-light border">
-                    <a href="" class="btn btn-sm text-dark p-0"><i class="fas fa-eye text-primary mr-1"></i>View Detail</a>
-                    <a href="" class="btn btn-sm text-dark p-0 product-add-cart"><i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart</a>
+                    <a href="{{ $productUrl }}" class="btn btn-sm text-dark p-0"><i class="fas fa-eye text-primary mr-1"></i>View Detail</a>
+                    <a href="javascript:void(0)" class="btn btn-sm text-dark p-0 addToCartBtn product-add-cart" data-id="{{ $product['id'] }}"><i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart</a>
                 </div>
             </div>
         </div>

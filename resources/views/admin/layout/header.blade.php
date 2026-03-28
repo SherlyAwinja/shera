@@ -1,179 +1,147 @@
-<nav class="app-header navbar navbar-expand bg-body">
-    <!--begin::Container-->
+@php
+    $admin = Auth::guard('admin')->user();
+    $isAdmin = strtolower((string) $admin->role) === 'admin';
+    $pageKey = session('page', 'dashboard');
+    $pageTitle = ucwords(str_replace(['_', '-'], ' ', (string) $pageKey));
+    $workspaceLabel = $isAdmin ? 'Administrator Workspace' : 'Role Based Workspace';
+    $roleLabel = $isAdmin ? 'Admin' : 'Subadmin';
+    $memberSince = optional($admin->created_at)->format('M Y');
+    $nameParts = preg_split('/\s+/', trim((string) ($admin->name ?? 'Admin'))) ?: ['Admin'];
+    $initials = collect($nameParts)
+        ->filter()
+        ->take(2)
+        ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+        ->implode('');
+    $profileImage = !empty($admin->image)
+        ? asset('admin/images/photos/' . $admin->image)
+        : null;
+@endphp
+
+<nav class="app-header navbar navbar-expand admin-app-header">
     <div class="container-fluid">
-        <!--begin::Start Navbar Links-->
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button">
-                <i class="bi bi-list"></i>
+        <div class="admin-app-header__inner">
+            <div class="admin-app-header__left">
+                <a class="admin-app-header__toggle" data-lte-toggle="sidebar" href="#" role="button" aria-label="Toggle sidebar">
+                    <i class="bi bi-list"></i>
                 </a>
-            </li>
-            <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Home</a></li>
-            <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Contact</a></li>
-        </ul>
-        <!--end::Start Navbar Links-->
-        <!--begin::End Navbar Links-->
-        <ul class="navbar-nav ms-auto">
-            <!--begin::Messages Dropdown Menu-->
-            <?php /* <li class="nav-item dropdown">
-                <a class="nav-link" data-bs-toggle="dropdown" href="#">
-                <i class="bi bi-chat-text"></i>
-                <span class="navbar-badge badge text-bg-danger">3</span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                    <a href="#" class="dropdown-item">
-                        <!--begin::Message-->
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <img
-                                    src="{{ asset('admin/images/user1-128x128.jpg') }}"
-                                    alt="User Avatar"
-                                    class="img-size-50 rounded-circle me-3"
-                                    />
-                            </div>
-                            <div class="flex-grow-1">
-                                <h3 class="dropdown-item-title">
-                                    Brad Diesel
-                                    <span class="float-end fs-7 text-danger"
-                                        ><i class="bi bi-star-fill"></i
-                                        ></span>
-                                </h3>
-                                <p class="fs-7">Call me whenever you can...</p>
-                                <p class="fs-7 text-secondary">
-                                    <i class="bi bi-clock-fill me-1"></i> 4 Hours Ago
-                                </p>
-                            </div>
-                        </div>
-                        <!--end::Message-->
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                        <!--begin::Message-->
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <img
-                                    src="{{ asset('admin/images/user8-128x128.jpg') }}"
-                                    alt="User Avatar"
-                                    class="img-size-50 rounded-circle me-3"
-                                    />
-                            </div>
-                            <div class="flex-grow-1">
-                                <h3 class="dropdown-item-title">
-                                    John Pierce
-                                    <span class="float-end fs-7 text-secondary">
-                                    <i class="bi bi-star-fill"></i>
-                                    </span>
-                                </h3>
-                                <p class="fs-7">I got your message bro</p>
-                                <p class="fs-7 text-secondary">
-                                    <i class="bi bi-clock-fill me-1"></i> 4 Hours Ago
-                                </p>
-                            </div>
-                        </div>
-                        <!--end::Message-->
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                        <!--begin::Message-->
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <img
-                                    src="{{ asset('admin/images/user3-128x128.jpg') }}"
-                                    alt="User Avatar"
-                                    class="img-size-50 rounded-circle me-3"
-                                    />
-                            </div>
-                            <div class="flex-grow-1">
-                                <h3 class="dropdown-item-title">
-                                    Nora Silvester
-                                    <span class="float-end fs-7 text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    </span>
-                                </h3>
-                                <p class="fs-7">The subject goes here</p>
-                                <p class="fs-7 text-secondary">
-                                    <i class="bi bi-clock-fill me-1"></i> 4 Hours Ago
-                                </p>
-                            </div>
-                        </div>
-                        <!--end::Message-->
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item dropdown-footer">See All Messages</a>
+
+                <div class="admin-app-header__context">
+                    <span class="admin-app-header__eyebrow">
+                        <i class="bi bi-stars"></i>
+                        <span>{{ $workspaceLabel }}</span>
+                    </span>
+
+                    <div class="admin-app-header__title-row">
+                        <h1 class="admin-app-header__title">{{ $pageTitle }}</h1>
+                        <span class="admin-app-header__badge">{{ $roleLabel }}</span>
+                    </div>
                 </div>
-            </li>*/ ?>
-            <!--end::Messages Dropdown Menu-->
-            <!--begin::Notifications Dropdown Menu-->
-            <!--<li class="nav-item dropdown">
-                <a class="nav-link" data-bs-toggle="dropdown" href="#">
-                <i class="bi bi-bell-fill"></i>
-                <span class="navbar-badge badge text-bg-warning">15</span>
+            </div>
+
+            <div class="admin-app-header__right">
+                <a href="{{ url('/') }}" class="admin-app-header__utility d-none d-lg-inline-flex">
+                    <i class="bi bi-shop-window"></i>
+                    <span>View Storefront</span>
                 </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                    <span class="dropdown-item dropdown-header">15 Notifications</span>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                    <i class="bi bi-envelope me-2"></i> 4 new messages
-                    <span class="float-end text-secondary fs-7">3 mins</span>
+
+                <a class="admin-app-header__utility admin-app-header__utility--icon" href="#" data-lte-toggle="fullscreen" aria-label="Toggle fullscreen">
+                    <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i>
+                    <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none"></i>
+                </a>
+
+                <div class="dropdown admin-app-header__user user-menu">
+                    <a href="#" class="admin-app-header__user-trigger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        @if($profileImage)
+                            <img src="{{ $profileImage }}" class="admin-app-header__avatar-image" alt="{{ $admin->name }}" />
+                        @else
+                            <span class="admin-app-header__avatar">{{ $initials }}</span>
+                        @endif
+
+                        <span class="admin-app-header__identity d-none d-md-flex">
+                            <span class="admin-app-header__name">{{ $admin->name }}</span>
+                            <span class="admin-app-header__role">{{ $roleLabel }} access</span>
+                        </span>
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                    <i class="bi bi-people-fill me-2"></i> 8 friend requests
-                    <span class="float-end text-secondary fs-7">12 hours</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                    <i class="bi bi-file-earmark-fill me-2"></i> 3 new reports
-                    <span class="float-end text-secondary fs-7">2 days</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item dropdown-footer"> See All Notifications </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end admin-app-header__menu">
+                        <li class="admin-app-header__menu-hero">
+                            <div class="admin-app-header__menu-avatar">
+                                @if($profileImage)
+                                    <img src="{{ $profileImage }}" class="admin-app-header__avatar-image" alt="{{ $admin->name }}" />
+                                @else
+                                    <span class="admin-app-header__avatar">{{ $initials }}</span>
+                                @endif
+                            </div>
+
+                            <div class="admin-app-header__menu-copy">
+                                <h3 class="admin-app-header__menu-name">{{ $admin->name }}</h3>
+                                <span class="admin-app-header__menu-email">{{ $admin->email }}</span>
+                                <span class="admin-app-header__menu-meta">
+                                    <i class="bi bi-calendar-event"></i>
+                                    <span>Member since {{ $memberSince ?: 'recently' }}</span>
+                                </span>
+                            </div>
+                        </li>
+
+                        <li><hr class="dropdown-divider admin-app-header__menu-divider"></li>
+
+                        <li class="admin-app-header__menu-links">
+                            <a href="{{ url('admin/dashboard') }}" class="admin-app-header__menu-link">
+                                <span class="admin-app-header__menu-link-main">
+                                    <span class="admin-app-header__menu-icon"><i class="bi bi-speedometer2"></i></span>
+                                    <span class="admin-app-header__menu-label">
+                                        <strong>Dashboard</strong>
+                                        <span>Return to the main control view</span>
+                                    </span>
+                                </span>
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+
+                            <a href="{{ url('admin/update-details') }}" class="admin-app-header__menu-link">
+                                <span class="admin-app-header__menu-link-main">
+                                    <span class="admin-app-header__menu-icon"><i class="bi bi-person-vcard"></i></span>
+                                    <span class="admin-app-header__menu-label">
+                                        <strong>Profile Details</strong>
+                                        <span>Update your account information</span>
+                                    </span>
+                                </span>
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+
+                            <a href="{{ url('admin/update-password') }}" class="admin-app-header__menu-link">
+                                <span class="admin-app-header__menu-link-main">
+                                    <span class="admin-app-header__menu-icon"><i class="bi bi-shield-lock"></i></span>
+                                    <span class="admin-app-header__menu-label">
+                                        <strong>Security</strong>
+                                        <span>Review password and sign-in settings</span>
+                                    </span>
+                                </span>
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+
+                            <a href="{{ url('/') }}" class="admin-app-header__menu-link d-lg-none">
+                                <span class="admin-app-header__menu-link-main">
+                                    <span class="admin-app-header__menu-icon"><i class="bi bi-shop-window"></i></span>
+                                    <span class="admin-app-header__menu-label">
+                                        <strong>View Storefront</strong>
+                                        <span>Open the customer-facing site</span>
+                                    </span>
+                                </span>
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                        <li><hr class="dropdown-divider admin-app-header__menu-divider"></li>
+
+                        <li>
+                            <a href="{{ url('admin/logout') }}" class="admin-app-header__menu-signout">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Sign out</span>
+                            </a>
+                        </li>
+                    </ul>
                 </div>
-            </li>-->
-            <!--end::Notifications Dropdown Menu-->
-            <!--begin::Fullscreen Toggle-->
-            <li class="nav-item">
-                <a class="nav-link" href="#" data-lte-toggle="fullscreen">
-                <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i>
-                <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none"></i>
-                </a>
-            </li>
-            <!--end::Fullscreen Toggle-->
-            <!--begin::User Menu Dropdown-->
-            <li class="nav-item dropdown user-menu">
-                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                <img
-                  @if(!empty(Auth::guard('admin')->user()->image))
-                  src="{{ asset('admin/images/photos/' . Auth::guard('admin')->user()->image) }}"
-                  @else src="{{ asset('admin/images/user2-160x160.jpg') }}" @endif
-                    class="user-image rounded-circle shadow" alt="User Image" />
-                <span class="d-none d-md-inline">{{ Auth::guard('admin')->user()->name }}</span>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                    <!--begin::User Image-->
-                    <li class="user-header text-bg-primary">
-                        <img
-                            @if(!empty(Auth::guard('admin')->user()->image))
-                            src="{{ asset('admin/images/photos/' . Auth::guard('admin')->user()->image) }}"
-                            @else src="{{ asset('admin/images/user2-160x160.jpg') }}" @endif
-                            class="rounded-circle shadow" alt="User Image" />
-                        <p>
-                            {{ Auth::guard('admin')->user()->name }}
-                            <small>Member since {{ Auth::guard('admin')->user()->created_at->format('d-m-Y') }}</small>
-                        </p>
-                    </li>
-                    <!--end::User Image-->
-                    <!--begin::Menu Footer-->
-                    <li class="user-footer">
-                        <a href="#" class="btn btn-default btn-flat">Profile</a>
-                        <a href="{{ url('admin/logout') }}" class="btn btn-default btn-flat float-end">Sign out</a>
-                    </li>
-                    <!--end::Menu Footer-->
-                </ul>
-            </li>
-            <!--end::User Menu Dropdown-->
-        </ul>
-        <!--end::End Navbar Links-->
+            </div>
+        </div>
     </div>
-    <!--end::Container-->
 </nav>

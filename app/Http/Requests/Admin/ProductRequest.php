@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductRequest extends FormRequest
 {
@@ -21,7 +22,7 @@ class ProductRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'category_id' => 'required',
             'brand_id' => 'required',
             'product_name' => 'required|max:200',
@@ -29,10 +30,26 @@ class ProductRequest extends FormRequest
             'product_price' => 'required|numeric|gt:0',
             'product_color' => 'required|array|min:1',
             'product_color.*' => 'string|max:200',
+            'color_stock' => 'nullable|array',
+            'color_stock.*' => 'nullable|integer|min:0',
             'gender' => 'required|in:men,women,unisex,kids',
             'occasion' => 'required|array|min:1',
             'occasion.*' => 'in:work,cassual,travel,gym',
         ];
+
+        $productId = $this->route('product');
+        if($this->isMethod('post')) {
+            $rules['product_url']=[
+                'nullable',
+                Rule::unique('products', 'product_url'),
+            ];
+        } elseif ($this->isMethod('put')||$this->isMethod('patch')) {
+            $rules['product_url'] = [
+                'required',
+                Rule::unique('products', 'product_url')->ignore($productId),
+            ];
+        }
+        return $rules;
     }
 
     public function messages() {
@@ -46,12 +63,17 @@ class ProductRequest extends FormRequest
             'product_color.required' => 'Product color is required.',
             'product_color.array' => 'Please select at least one product color.',
             'product_color.min' => 'Please select at least one product color.',
+            'color_stock.array' => 'Color stock must be a valid list of quantities.',
+            'color_stock.*.integer' => 'Each color quantity must be a whole number.',
+            'color_stock.*.min' => 'Each color quantity must be zero or greater.',
             'gender.required' => 'Gender is required.',
             'gender.in' => 'Please select a valid gender option.',
             'occasion.required' => 'Occasion is required.',
             'occasion.array' => 'Please select at least one valid occasion.',
             'occasion.min' => 'Please select at least one occasion.',
             'occasion.*.in' => 'Please select a valid occasion option.',
+            'product_url.required' => 'Product URL is required when updating',
+            'product_url.unique' => 'Product URL must be unique',
         ];
     }
 }

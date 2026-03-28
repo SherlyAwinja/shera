@@ -39,10 +39,12 @@ class IndexService
     public function featuredProducts()
     {
         $featuredProducts = Product::select('id', 'category_id', 'product_name','discount_applied_on',
-        'product_price', 'product_discount', 'final_price','group_code','main_image')
+        'product_price', 'product_discount', 'final_price','group_code','main_image', 'product_url')
             ->with(['product_images'])
             ->where(['is_featured'=>'Yes', 'status'=>1])
             ->where('stock','>',0)
+            ->whereNotNull('product_url')
+            ->where('product_url', '!=', '')
             ->inRandomOrder()
             ->limit(8)
             ->get()
@@ -53,10 +55,12 @@ class IndexService
     public function newArrivalProducts()
     {
         $newArrivalProducts = Product::select('id', 'category_id', 'product_name', 'discount_applied_on',
-        'product_price', 'product_discount', 'final_price', 'group_code', 'main_image')
+        'product_price', 'product_discount', 'final_price', 'group_code', 'main_image', 'product_url')
             ->with(['product_images'])
             ->where('status', 1)
             ->where('stock', '>', 0)
+            ->whereNotNull('product_url')
+            ->where('product_url', '!=', '')
             ->latest()
             ->orderBy('id', 'Desc')
             ->limit(8)
@@ -67,7 +71,7 @@ class IndexService
 
     public function homeCategories()
     {
-        $categories=Category::select('id', 'name', 'image', 'url')
+        $categories = Category::select('id', 'name', 'image', 'url')
             ->whereNull('parent_id')  // only fetch top-level (parent) categories
             ->where('status', 1)  // Only Active categories
             ->where('menu_status', 1)  // Only Categories marked to show on menu/homepage
@@ -86,8 +90,9 @@ class IndexService
                 'url' => $category->url,
                 'product_count' => $productCount, // Add product count to the category data
             ];
-        });
-        return['categories'=>$categories->toArray()];
+        })
+            ->toArray();
+        return compact('categories');
     }
 
     Private function getAllCategoryIds($parentId)

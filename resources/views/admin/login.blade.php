@@ -3,7 +3,7 @@
   <!--begin::Head-->
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>AdminLTE 4 | Login Page v2</title>
+    <title>{{ config('app.name', 'Shera') }} | Admin Login</title>
     <!--begin::Accessibility Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <meta name="color-scheme" content="light dark" />
@@ -11,15 +11,15 @@
     <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
     <!--end::Accessibility Meta Tags-->
     <!--begin::Primary Meta Tags-->
-    <meta name="title" content="AdminLTE 4 | Login Page v2" />
-    <meta name="author" content="ColorlibHQ" />
+    <meta name="title" content="{{ config('app.name', 'Shera') }} | Admin Login" />
+    <meta name="author" content="{{ config('app.name', 'Shera') }}" />
     <meta
       name="description"
-      content="AdminLTE is a Free Bootstrap 5 Admin Dashboard, 30 example pages using Vanilla JS. Fully accessible with WCAG 2.1 AA compliance."
+      content="Secure administrator sign-in for {{ config('app.name', 'Shera') }}."
     />
     <meta
       name="keywords"
-      content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, colorlibhq, colorlibhq dashboard, colorlibhq admin dashboard, accessible admin panel, WCAG compliant"
+      content="{{ config('app.name', 'Shera') }}, admin login, dashboard access, store admin"
     />
     <!--end::Primary Meta Tags-->
     <!--begin::Accessibility Features-->
@@ -51,78 +51,181 @@
       crossorigin="anonymous"
     />
     <!--end::Third Party Plugin(Bootstrap Icons)-->
-    <!--begin::Required Plugin(AdminLTE)-->
+    <!--begin::Admin Theme Core-->
     <link rel="stylesheet" href="{{ asset('admin/css/adminlte.css') }}" />
-    <!--end::Required Plugin(AdminLTE)-->
+    <!--end::Admin Theme Core-->
+    <link rel="stylesheet" href="{{ asset('admin/css/admin-login.css') }}" />
   </head>
   <!--end::Head-->
   <!--begin::Body-->
-  <body class="login-page bg-body-secondary">
-    <div class="login-box">
-      <div class="card card-outline card-primary">
-        <div class="card-header">
-          <a
-            href="#"
-            class="link-dark text-center link-offset-2 link-opacity-100 link-opacity-50-hover"
-          >
-            <h1 class="mb-0"><b>Admin</b>LTE</h1>
-          </a>
-        </div>
-        <div class="card-body login-card-body">
-          <p class="login-box-msg">Sign in to start your session</p>
-          @if (session()->has('error_message'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              <strong>Error!</strong> {{ session()->get('error_message') }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  <body class="admin-login-page">
+    <div class="admin-login-scene">
+      <main class="admin-login-shell" role="main">
+        <section class="admin-login-brand">
+          <div class="admin-login-brand__top">
+            <span class="admin-login-pill">
+              <i class="bi bi-shield-lock"></i>
+              <span>Admin portal</span>
+            </span>
+
+            <a href="{{ url('/') }}" class="admin-login-return">
+              <i class="bi bi-arrow-left"></i>
+              <span>Back to storefront</span>
+            </a>
+          </div>
+
+          <h1 class="admin-login-heading">{{ config('app.name', 'Shera') }} command desk</h1>
+          <p class="admin-login-copy">
+            Oversee catalogue, customers, reviews, campaigns, and team access from one secure workspace.
+          </p>
+
+          <div class="admin-login-spotlight">
+            <span class="admin-login-spotlight__label">Operational Focus</span>
+            <strong>Start with the areas that move the store fastest.</strong>
+            <p>
+              Moderate customer feedback, adjust products, and refresh campaign assets without bouncing between tools.
+            </p>
+          </div>
+
+          <div class="admin-login-highlights">
+            <article class="admin-login-highlight">
+              <span class="admin-login-highlight__icon">
+                <i class="bi bi-box-seam"></i>
+              </span>
+              <h3>Catalogue control</h3>
+              <p>Move quickly through products, brands, filters, and category structure.</p>
+            </article>
+
+            <article class="admin-login-highlight">
+              <span class="admin-login-highlight__icon">
+                <i class="bi bi-chat-square-heart"></i>
+              </span>
+              <h3>Review flow</h3>
+              <p>Track customer sentiment and clear moderation queues without delay.</p>
+            </article>
+
+            <article class="admin-login-highlight admin-login-highlight--wide">
+              <span class="admin-login-highlight__icon">
+                <i class="bi bi-megaphone"></i>
+              </span>
+              <h3>Campaign updates</h3>
+              <p>Keep homepage banners and customer-facing promotions aligned with current priorities.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="admin-login-panel">
+          <div class="admin-login-panel__header">
+            <span class="admin-login-kicker">
+              <i class="bi bi-shield-check"></i>
+              <span>Secure sign in</span>
+            </span>
+            <h2>Welcome back</h2>
+            <p>Use your administrator credentials to continue to the control center.</p>
+          </div>
+
+          @if (session()->has('error_message') || $errors->any())
+            <div class="admin-login-alert" role="alert">
+              <div class="admin-login-alert__title">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>Sign-in could not be completed</span>
+              </div>
+
+              @if (session()->has('error_message'))
+                <p>{{ session()->get('error_message') }}</p>
+              @endif
+
+              @if ($errors->any())
+                <ul @if (session()->has('error_message')) class="mt-2" @endif>
+                  @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                  @endforeach
+                </ul>
+              @endif
             </div>
           @endif
-          @foreach ($errors->all() as $error)
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              <strong>Error!</strong> {{ $error }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          @endforeach
-          <form action="{{ route('admin.login.request') }}" method="post">@csrf
-            <div class="input-group mb-1">
-              <div class="form-floating">
-                <input id="loginEmail" name="email" type="email" class="form-control" placeholder="Email" 
-                @if(isset($_COOKIE['email'])) value="{{ $_COOKIE['email'] }}" @endif />
-                <label for="loginEmail">Email</label>
+
+          <form action="{{ route('admin.login.request') }}" method="post" class="admin-login-form">
+            @csrf
+
+            <div class="admin-login-field">
+              <label for="loginEmail">Email address</label>
+              <div class="admin-login-input-wrap">
+                <span class="admin-login-input-icon">
+                  <i class="bi bi-envelope"></i>
+                </span>
+                <input
+                  id="loginEmail"
+                  name="email"
+                  type="email"
+                  class="form-control admin-login-input"
+                  placeholder="name@example.com"
+                  value="{{ old('email', $_COOKIE['email'] ?? '') }}"
+                  autocomplete="username"
+                  required
+                />
               </div>
-              <div class="input-group-text"><span class="bi bi-envelope"></span></div>
             </div>
-            <div class="input-group mb-1">
-              <div class="form-floating">
-                <input id="loginPassword" name="password" type="password" class="form-control" placeholder="Password" 
-                @if(isset($_COOKIE['password'])) value="{{ $_COOKIE['password'] }}" @endif />
-                <label for="loginPassword">Password</label>
+
+            <div class="admin-login-field">
+              <label for="loginPassword">Password</label>
+              <div class="admin-login-input-wrap">
+                <span class="admin-login-input-icon">
+                  <i class="bi bi-lock-fill"></i>
+                </span>
+                <input
+                  id="loginPassword"
+                  name="password"
+                  type="password"
+                  class="form-control admin-login-input"
+                  placeholder="Enter your password"
+                  value="{{ $_COOKIE['password'] ?? '' }}"
+                  autocomplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  class="admin-login-password-toggle"
+                  data-password-toggle
+                  aria-controls="loginPassword"
+                  aria-label="Show password"
+                >
+                  <i class="bi bi-eye"></i>
+                </button>
               </div>
-              <div class="input-group-text"><span class="bi bi-lock-fill"></span></div>
             </div>
-            <!--begin::Row-->
-            <div class="row">
-              <div class="col-8 d-inline-flex align-items-center">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="remember" name="remember" 
-                  @if(isset($_COOKIE['email'])) checked @endif />
-                  <label class="form-check-label" for="remember"> Remember Me </label>
-                </div>
+
+            <div class="admin-login-actions">
+              <div class="form-check admin-login-checkbox">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="remember"
+                  name="remember"
+                  @checked(old('remember', isset($_COOKIE['email'])))
+                />
+                <label class="form-check-label" for="remember">Remember me</label>
               </div>
-              <!-- /.col -->
-              <div class="col-4">
-                <div class="d-grid gap-2">
-                  <button type="submit" class="btn btn-primary">Sign In</button>
-                </div>
-              </div>
-              <!-- /.col -->
+
+              <span class="admin-login-helper">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>Protected admin access</span>
+              </span>
             </div>
-            <!--end::Row-->
+
+            <button type="submit" class="btn admin-login-submit">
+              <span>Sign in to dashboard</span>
+              <i class="bi bi-arrow-right"></i>
+            </button>
           </form>
-        </div>
-        <!-- /.login-card-body -->
-      </div>
+
+          <p class="admin-login-footer">
+            Need the storefront instead?
+            <a href="{{ url('/') }}">Return to site</a>
+          </p>
+        </section>
+      </main>
     </div>
-    <!-- /.login-box -->
     <!--begin::Third Party Plugin(OverlayScrollbars)-->
     <script
       src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"
@@ -138,9 +241,9 @@
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.min.js"
       crossorigin="anonymous"
     ></script>
-    <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
+    <!--end::Required Plugin(Bootstrap 5)--><!--begin::Admin Theme Core-->
     <script src="{{ asset('admin/js/adminlte.js') }}"></script>
-    <!--end::Required Plugin(AdminLTE)--><!--begin::OverlayScrollbars Configure-->
+    <!--end::Admin Theme Core--><!--begin::OverlayScrollbars Configure-->
     <script>
       const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
       const Default = {
@@ -159,6 +262,29 @@
             },
           });
         }
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-password-toggle]').forEach(function (toggle) {
+          toggle.addEventListener('click', function () {
+            const input = document.getElementById(toggle.getAttribute('aria-controls'));
+
+            if (!input) {
+              return;
+            }
+
+            const isPassword = input.getAttribute('type') === 'password';
+            const icon = toggle.querySelector('i');
+
+            input.setAttribute('type', isPassword ? 'text' : 'password');
+            toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+
+            if (icon) {
+              icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+          });
+        });
       });
     </script>
     <!--end::OverlayScrollbars Configure-->

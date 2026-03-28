@@ -12,6 +12,7 @@ use App\Models\ProductsAttribute;
 use Illuminate\Validation\ValidationException;
 use Algolia\AlgoliaSearch\Exceptions\UnreachableException;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 
 class ProductService
@@ -89,15 +90,13 @@ class ProductService
         $product->brand_id = $data['brand_id'];
         $product->product_name = $data['product_name'];
         $product->product_code = $data['product_code'];
-        $productColorInput = $data['product_color'] ?? [];
-        if (!is_array($productColorInput)) {
-            $productColorInput = preg_split('/[~,]/', (string) $productColorInput, -1, PREG_SPLIT_NO_EMPTY);
-        }
-        $productColors = array_values(array_unique(array_filter(array_map(
-            fn ($value) => trim((string) $value),
-            (array) $productColorInput
-        ))));
+        $productColors = $this->normalizeColorLabels($data['product_color'] ?? []);
+        $colorStock = $this->normalizeColorStockInput($data['color_stock'] ?? [], $productColors);
+        $supportsColorStock = Schema::hasColumn('products', 'color_stock');
         $product->product_color = empty($productColors) ? null : implode(',', $productColors);
+        if ($supportsColorStock) {
+            $product->color_stock = empty($productColors) ? null : $colorStock;
+        }
 
         if (Schema::hasColumn('products', 'gender')) {
             $product->gender = $data['gender'] ?? null;
@@ -191,6 +190,22 @@ class ProductService
             $product->product_video = $data['product_video_hidden'];
         }
 
+
+        // Generate product_url only if in create mode
+        if ($product->wasRecentlyCreated) {
+            $slug = Str::slug($data['product_name']);
+            $product->product_url = $slug . '-' . $product->id;
+        }
+        // In update mode, update product_url only if provided
+        else {
+            if (!empty($data['product_url'])) {
+                $product->product_url = Str::slug($data['product_url']);
+            }
+        }
+
+        // Save initial product URL if exists
+        $product->product_url = $product->product_url ?? null;
+
         $this->saveProductWithScoutFallback($product);
 
         // Sync other categories for this product
@@ -260,7 +275,6 @@ class ProductService
         }
 
         // Add Product Attributes
-        $total_stock = 0;
         foreach(($data['sku'] ?? []) as $key => $value) {
             $size = $data['size'][$key] ?? null;
             $price = $data['price'][$key] ?? null;
@@ -280,7 +294,6 @@ class ProductService
                 $attribute->sort = is_numeric($attributeSort) ? (int) $attributeSort : 0;
                 $attribute->status = 1;
                 $attribute->save();
-                $total_stock = $total_stock + (int) $stock;
             }
         }
 
@@ -298,18 +311,7 @@ class ProductService
             }
         }
 
-        // Update Product stock on Edit Product
-        if(isset($data['attrId'])) {
-            foreach ($data['attrId'] as $attrKeyId => $attrIdDetails) {
-                $proAttrUpdate = ProductsAttribute::find($attrIdDetails);
-                if ($proAttrUpdate) {
-                    $proAttrUpdate->stock = $data['update_stock'][$attrKeyId];
-                    $proAttrUpdate->save();
-                    $total_stock = $total_stock + $data['update_stock'][$attrKeyId];
-                }
-            }
-        }
-        Product::where('id', $product->id)->update(['stock' => $total_stock]);
+        $this->syncProductStock($product, $colorStock);
 
 
         return $message;
@@ -349,28 +351,95 @@ class ProductService
         }
     }
 
+    private function normalizeColorLabels($productColorInput): array
+    {
+        if (!is_array($productColorInput)) {
+            $productColorInput = preg_split('/[~,]/', (string) $productColorInput, -1, PREG_SPLIT_NO_EMPTY);
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            fn ($value) => trim((string) $value),
+            (array) $productColorInput
+        ))));
+    }
+
+    private function normalizeColorStockInput($colorStockInput, array $productColors): array
+    {
+        $colorStockInput = is_array($colorStockInput) ? $colorStockInput : [];
+        $normalized = [];
+
+        foreach ($productColors as $color) {
+            $rawValue = 0;
+
+            foreach ($colorStockInput as $key => $value) {
+                if (strtolower(trim((string) $key)) === strtolower(trim((string) $color))) {
+                    $rawValue = $value;
+                    break;
+                }
+            }
+
+            $normalized[$color] = max(0, (int) $rawValue);
+        }
+
+        return $normalized;
+    }
+
+    private function sumColorStock(array $colorStock): int
+    {
+        return array_sum(array_map(
+            fn ($value) => max(0, (int) $value),
+            $colorStock
+        ));
+    }
+
+    private function syncProductStock(Product $product, array $colorStock = []): void
+    {
+        $attributeQuery = ProductsAttribute::where('product_id', $product->id);
+        $hasAttributes = (clone $attributeQuery)->exists();
+
+        $totalStock = $hasAttributes
+            ? (int) (clone $attributeQuery)->where('status', 1)->sum('stock')
+            : $this->sumColorStock($colorStock);
+
+        $updates = [
+            'stock' => $totalStock,
+        ];
+
+        if (Schema::hasColumn('products', 'availability')) {
+            $updates['availability'] = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+        }
+
+        Product::where('id', $product->id)->update($updates);
+
+        $product->forceFill($updates);
+    }
+
     private function saveProductWithScoutFallback(Product $product): void
     {
-        $shouldSkipScoutSync = app()->environment('local') && config('scout.driver') === 'algolia';
-
-        if ($shouldSkipScoutSync) {
+        // Disable Scout syncing for Algolia to prevent unreachable exceptions during development
+        if (config('scout.driver') === 'algolia') {
             Product::withoutSyncingToSearch(function () use ($product) {
                 $product->save();
             });
-
             return;
         }
 
-        try {
-            $product->save();
-        } catch (UnreachableException $exception) {
-            report($exception);
-        }
+        $product->save();
     }
 
     public function updateAttributeStatus($data) {
         $status = ($data['status'] == "Active") ? 0 : 1;
-        ProductsAttribute::where('id', $data['attribute_id'])->update(['status' => $status]);
+        $attribute = ProductsAttribute::find($data['attribute_id']);
+
+        if ($attribute) {
+            $attribute->update(['status' => $status]);
+
+            $product = Product::find($attribute->product_id);
+            if ($product) {
+                $this->syncProductStock($product, (array) ($product->color_stock ?? []));
+            }
+        }
+
         return $status;
     }
 
@@ -486,8 +555,17 @@ class ProductService
     }
 
     public function deleteProductAttribute($id) {
-        // Delete Attribute
-        ProductsAttribute::where('id', $id)->delete();
+        $attribute = ProductsAttribute::find($id);
+
+        if ($attribute) {
+            $product = Product::find($attribute->product_id);
+            $attribute->delete();
+
+            if ($product) {
+                $this->syncProductStock($product, (array) ($product->color_stock ?? []));
+            }
+        }
+
         return "Product attribute deleted successfully";
     }
 

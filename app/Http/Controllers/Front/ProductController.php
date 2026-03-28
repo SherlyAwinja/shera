@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Product;
+use App\Http\Requests\Front\ProductVariantRequest;
 use Illuminate\Support\Facades\Route;
 use App\Services\Front\ProductService;
 
@@ -129,7 +130,7 @@ class ProductController extends Controller
             <div class="search-result-item py-2 border-bottom" style="max-width:600px; margin:10px;">
                 <div class="row no-gutters align-items-center">
                     <div class="col-auto pr-2">
-                        <a href="' . url('product/' . $product->id) . '">
+                        <a href="' . url($product->product_url) . '">
                             <img src="' . $image . '" alt="' . $product->product_name . '" style="width:60px; height:60px; object-fit:cover; border-radius:5px;">
                         </a>
                     </div>
@@ -146,7 +147,7 @@ class ProductController extends Controller
                         </div>
                     </div>
                     <div class="col-auto pl-2 text-right">
-                        <a href="' . url('product/' . $product->id) . '" class="btn btn-sm btn-outline-primary" title="View">
+                        <a href="' . url($product->product_url) . '" class="btn btn-sm btn-outline-primary" title="View">
                             <i class="fas fa-eye"></i>
                         </a>
                         <a href="javascript:void(0)" data-id="' . $product->id . '" class="btn btn-sm btn-outline-success addToCartBtn" title="Add to Cart">
@@ -166,7 +167,38 @@ class ProductController extends Controller
                         </div>';
         }
 
-        return $output ?: '<div align="center"></div>';
+        return $output ?: '<div class="px-3 py-2 text-muted small">No products found.</div>';
+    }
+
+    public function detail() {
+        $currentUrl = request()->path();
+        $product = $this->productService->getProductDetailByUrl($currentUrl);
+        abort_unless($product, 404);
+        $variantState = $this->productService->buildVariantState($product);
+        return view('front.products.detail', compact('product', 'variantState'));
+    }
+
+    public function getProductPrice(Request $request)
+    {
+        $data = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'size' => ['required', 'string', 'max:100'],
+        ]);
+
+        $price = Product::getAttributePrice((int) $data['product_id'], (string) $data['size']);
+
+        return response()->json($price, ($price['status'] ?? false) ? 200 : 422);
+    }
+
+    public function getProductVariant(ProductVariantRequest $request)
+    {
+        $variant = $this->productService->getProductVariantData(
+            (int) $request->integer('product_id'),
+            (string) $request->string('color'),
+            $request->filled('size') ? (string) $request->string('size') : null
+        );
+
+        return response()->json($variant, ($variant['status'] ?? false) ? 200 : 422);
     }
 
 }

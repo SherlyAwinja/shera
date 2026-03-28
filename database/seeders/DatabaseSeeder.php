@@ -16,17 +16,27 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        User::query()->firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => 'password',
+            ]
+        );
 
-        $this->call([AdminsTableSeeder::class]);
-        $this->call([CategoryTableSeeder::class]);
-        $this->call([ColorTableSeeder::class]);
-        $this->call([ProductsAttributesTableSeeder::class]);
-        $this->call([BrandTableSeeder::class]);
-        $this->call([ProductsTableSeeder::class]);
-        $this->call([FiltersTableSeeder::class]);
+        $this->call([
+            CountriesTableSeeder::class,
+            CountiesTableSeeder::class,
+            SubCountiesTableSeeder::class,
+            AdminsTableSeeder::class,
+            CategoryTableSeeder::class,
+            ColorTableSeeder::class,
+            ProductsAttributesTableSeeder::class,
+            BrandTableSeeder::class,
+            ProductsTableSeeder::class,
+            FiltersTableSeeder::class,
+            ReviewSeeder::class,
+            CouponSeeder::class,
+        ]);
     }
 }

@@ -11,11 +11,17 @@ class Product extends Model
 
     protected $casts = [
         'dimensions' => 'array',
+        'color_stock' => 'array',
     ];
 
     public function category()
     {
         return $this->belongsTo('App\Models\Category', 'category_id')->with('parentCategory');
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(\App\Models\Brand::class, 'brand_id');
     }
 
     public function getProductDimensionsAttribute()
@@ -63,5 +69,92 @@ class Product extends Model
     public function otherCategories()
     {
         return $this->hasMany(ProductsCategory::class, 'product_id');
+    }
+
+    public static function getAttributePrice($product_id, $size)
+    {
+        // Get attribute
+        $attribute = ProductsAttribute::where([
+            'product_id' => $product_id,
+            'size' => $size,
+            'status' => 1
+        ])->first();
+
+        if (!$attribute) {
+            return ['status' => false];
+        }
+
+        $basePrice = (float) $attribute->price;
+
+        // Get product
+        $product = self::select('id', 'category_id', 'brand_id', 'product_discount')
+            ->where('id', $product_id)
+            ->first();
+
+        if (!$product) {
+            return ['status' => false];
+        }
+
+        // Discounts
+        $productDisc = (float) ($product->product_discount ?? 0);
+
+        $categoryDisc = 0;
+        if ($product->category_id) {
+            $cat = Category::select('discount')->find($product->category_id);
+            $categoryDisc = (float) ($cat->discount ?? 0);
+        }
+
+        $brandDisc = 0;
+        if ($product->brand_id) {
+            $brand = Brand::select('discount')->find($product->brand_id);
+            $brandDisc = (float) ($brand->discount ?? 0);
+        }
+
+        // Apply highest priority discount
+        $applied = 0;
+
+        if ($productDisc > 0) {
+            $applied = $productDisc;
+        } elseif ($categoryDisc > 0) {
+            $applied = $categoryDisc;
+        } elseif ($brandDisc > 0) {
+            $applied = $brandDisc;
+        }
+
+        // Final price calculation
+        $final = $applied > 0
+            ? round($basePrice - ($basePrice * $applied / 100))
+            : round($basePrice);
+
+        $discountAmt = $basePrice - $final;
+
+        return [
+            'status' => true,
+            'product_price' => (int) $basePrice,
+            'final_price' => (int) $final,
+            'discount' => (int) $discountAmt,
+            'percent' => (int) $applied,
+            'stock' => (int) $attribute->stock,
+            'in_stock' => (int) $attribute->stock > 0,
+            'stock_label' => (int) $attribute->stock > 0 ? 'In stock' : 'Out of stock',
+            'stock_message' => (int) $attribute->stock > 0
+                ? sprintf('%d unit%s available in size %s.', (int) $attribute->stock, (int) $attribute->stock === 1 ? '' : 's', $attribute->size)
+                : sprintf('Size %s is currently out of stock.', $attribute->size),
+        ];
+    }
+
+    public static function productStatus($product_id)
+    {
+        return self::where('id', $product_id)->value('status');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'product_id');
+    }
+
+    public function averageRating()
+    {
+        return (float) $this->reviews()->where('status', 1)->avg('rating')??0;
     }
 }

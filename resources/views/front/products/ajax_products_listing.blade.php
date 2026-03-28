@@ -124,7 +124,7 @@
         <div class="col-lg-4 col-md-6 col-12 pb-4 product-grid-col">
             <div class="card product-item border-0 mb-0 product-grid-card w-100">
                 <div class="card-header product-img product-grid-media position-relative overflow-hidden bg-transparent border p-0">
-                    <a href="#"><img class="img-fluid w-100 product-grid-image" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
+                    <a href="/{{ $product['product_url'] }}"><img class="img-fluid w-100 product-grid-image" src="{{ $image }}" alt="{{ $product['product_name'] }}"></a>
                 </div>
                 <div class="card-body border-left border-right text-center p-0 pt-4 pb-3 product-grid-body">
                     <h6 class="text-truncate mb-3 product-title">{{ $product['product_name'] }}</h6>
@@ -141,7 +141,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between bg-light border product-grid-footer">
-                    <a href="#" class="btn btn-sm p-0 product-view-link">
+                    <a href="/{{ $product['product_url'] }}" class="btn btn-sm p-0 product-view-link">
                         <i class="fas fa-eye mr-1 product-card-icon"></i>View Detail
                     </a>
                     <a href="javascript:void(0)" class="btn btn-sm btn-primary p-0 addToCartBtn product-add-cart-btn" data-id="{{ $product['id'] }}">

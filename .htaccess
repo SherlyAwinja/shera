@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Avoid rewriting requests that are already targeting the public directory.
+    RewriteRule ^public/ - [L]
+
+    # Forward all web requests through Laravel's public entrypoint when the vhost
+    # points at the project root instead of the public directory.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

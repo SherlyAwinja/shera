@@ -1,8 +1,8 @@
 <!-- Footer Start -->
-<div class="container-fluid bg-secondary text-dark mt-5 pt-2 front-footer {{ request()->url() === url('/') || isset($categoryDetails) ? 'home-footer-theme' : '' }}">
+<div class="container-fluid bg-secondary text-dark mt-5 pt-2 front-footer {{ request()->path() === '/' || isset($categoryDetails) ? 'home-footer-theme' : '' }}">
     <div class="row px-xl-5 pt-5">
         <div class="col-lg-4 col-md-12 mb-5 pr-3 pr-xl-5">
-            <a href="{{ url('/') }}" class="text-decoration-none footer-logo-link" aria-label="SHERA Home">
+            <a href="/" class="text-decoration-none footer-logo-link" aria-label="SHERA Home">
                 <h1 class="mb-4 footer-logo">
                     <span class="shera-logo">
                         <span class="shera-logo-mark" aria-hidden="true">S</span>
@@ -61,7 +61,7 @@
             </p>
         </div>
         <div class="col-md-6 px-xl-0 text-center text-md-right">
-            <img class="img-fluid" src="img/payments.png" alt="">
+            <img class="img-fluid" src="{{ asset('front/images/payments.png') }}" alt="">
         </div>
     </div>
 </div>

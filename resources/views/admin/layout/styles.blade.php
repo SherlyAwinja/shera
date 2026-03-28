@@ -24,9 +24,12 @@
     crossorigin="anonymous"
     />
 <!--end::Third Party Plugin(Bootstrap Icons)-->
-<!--begin::Required Plugin(AdminLTE)-->
+<!--begin::Admin Theme Core-->
 <link rel="stylesheet" href="{{ asset('admin/css/adminlte.css') }}" />
-<!--end::Required Plugin(AdminLTE)-->
+<!--end::Admin Theme Core-->
+<link rel="stylesheet" href="{{ asset('admin/css/admin-header.css') }}" />
+<link rel="stylesheet" href="{{ asset('admin/css/admin-sidebar.css') }}" />
+<link rel="stylesheet" href="{{ asset('admin/css/admin-dashboard.css') }}" />
 <!-- apexcharts -->
 <link
     rel="stylesheet"

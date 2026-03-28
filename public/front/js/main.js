@@ -1,6 +1,6 @@
 (function ($) {
     "use strict";
-    
+
     // Dropdown on mouse hover
     $(document).ready(function () {
         function toggleNavbarMethod() {
@@ -17,8 +17,8 @@
         toggleNavbarMethod();
         $(window).resize(toggleNavbarMethod);
     });
-    
-    
+
+
     // Back to top button
     $(window).scroll(function () {
         if ($(this).scrollTop() > 100) {
@@ -137,24 +137,24 @@
 
 
     // Product Quantity
-    $('.quantity button').on('click', function () {
+    $('.quantity button').not('.updateCartQty').on('click', function (e) {
+        e.preventDefault(); // Prevent form submission
         var button = $(this);
-        var oldValue = button.parent().parent().find('input').val();
+        var input = button.closest('.quantity').find('input');
+        var oldValue = parseInt(input.val()) || 0;
+        var newVal = oldValue;
         if (button.hasClass('btn-plus')) {
-            var newVal = parseFloat(oldValue) + 1;
-        } else {
-            if (oldValue > 0) {
-                var newVal = parseFloat(oldValue) - 1;
-            } else {
-                newVal = 0;
-            }
+            newVal = oldValue + 1;
+        } else if (oldValue > 1) {
+            newVal = oldValue - 1;
         }
-        button.parent().parent().find('input').val(newVal);
+
+        input.val(newVal);
     });
 
      $('#add-address-btn').on('click', function (e) {
         const form = $('#add-address-form');
-        
+
         // Only if it's not already shown
         if (!form.hasClass('show')) {
             // Wait for Bootstrap collapse animation
@@ -165,5 +165,5 @@
             }, 350); // Match Bootstrap's collapse transition (default 350ms)
         }
     });
-    
+
 })(jQuery);
