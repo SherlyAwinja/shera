@@ -127,6 +127,87 @@
         </div>
     </div>
 
+    <!-- Order Logs -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">Order Logs</h5>
+
+            @if($order->logs && $order->logs->count())
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Tracking</th>
+                                <th>Partner</th>
+                                <th>Remarks</th>
+                                <th>Updated By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($order->logs as $log)
+                                @php
+                                    $isShipped = strtolower($log->status->name ?? '') === 'shipped';
+                                    $trackLink = $log->tracking_link ?? $order->tracking_link ?? null;
+                                    $trackNumber = $log->tracking_number ?? $order->tracking_number ?? null;
+                                @endphp
+
+                                <tr>
+                                    <td>
+                                        {{ $log->created_at->format('d M Y, h:i A') }}
+                                    </td>
+
+                                    <td>
+                                        {{ optional($log->status)->name ?? '--' }}
+                                    </td>
+
+                                    <td>
+                                        {{ $trackNumber ?? '--' }}
+
+                                        @if($trackLink)
+                                            <div>
+                                                <a href="{{ $trackLink }}" target="_blank"
+                                                class="btn btn-sm btn-outline-primary mt-1">
+                                                    Track
+                                                </a>
+                                            </div>
+                                        @elseif($trackNumber)
+                                            @php
+                                                $search = rawurlencode(($log->shipping_partner ?? '') . ' ' . $trackNumber);
+                                                $searchUrl = "https://www.google.com/search?q={$search}";
+                                            @endphp
+                                            <div>
+                                                <a href="{{ $searchUrl }}" target="_blank"
+                                                class="btn btn-sm btn-outline-secondary mt-1">
+                                                    Track
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </td>
+
+                                    <td>
+                                        {{ $log->shipping_partner ?? '--' }}
+                                    </td>
+
+                                    <td style="max-width:280px;">
+                                        {!! nl2br(e($log->remarks ?? '--')) !!}
+                                    </td>
+
+                                    <td>
+                                        {{ optional($log->updatedByAdmin)->name ?? ('Admin #'.$log->updated_by ?? '--') }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-muted mb-0">No logs available for this order.</p>
+            @endif
+        </div>
+    </div>
+
     <!-- Shipping & Billing -->
     <div class="row gy-4">
 

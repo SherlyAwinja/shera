@@ -10,7 +10,7 @@
     $latestOrderDate = $ordersCollection->first()?->placed_at ?: $ordersCollection->first()?->created_at;
     $formatMoney = fn (float $amount, ?string $currency = null) => (filled($currency) ? strtoupper((string) $currency) . '.' : config('app.currency_symbol', 'KSH.')) . number_format($amount, 2);
     $statusTone = fn (?string $status) => match (strtolower(trim((string) $status))) {
-        'placed', 'confirmed' => 'warning',
+        'pending', 'placed', 'confirmed' => 'warning',
         'processing', 'shipped' => 'info',
         'delivered', 'completed' => 'success',
         'cancelled', 'canceled' => 'danger',
@@ -60,6 +60,9 @@
     .orders-badge[data-tone="info"] { background: rgba(15, 95, 115, .12); border-color: rgba(15, 95, 115, .18); color: #0f5f73; }
     .orders-badge[data-tone="danger"] { background: rgba(139, 28, 45, .1); border-color: rgba(139, 28, 45, .16); color: var(--front-luxe-primary); }
     .orders-badge[data-tone="neutral"] { background: rgba(15, 23, 42, .06); border-color: rgba(15, 23, 42, .08); color: #334155; }
+    .orders-status-stack { display: grid; justify-items: end; gap: .45rem; }
+    .orders-status-meta { color: var(--front-luxe-muted); font-size: .85rem; line-height: 1.6; text-align: right; }
+    .orders-status-meta a { color: var(--front-luxe-primary); font-weight: 700; }
     .orders-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1rem; }
     .orders-metric { background: rgba(255, 249, 240, .72); border: 1px solid rgba(139, 28, 45, .1); }
     .orders-metric strong { color: var(--front-luxe-text); display: block; }
@@ -78,7 +81,7 @@
     .orders-pagination .page-item.active .page-link { background: var(--front-luxe-primary); border-color: var(--front-luxe-primary); color: #fff; }
     @media (max-width: 991.98px) { .orders-shell, .orders-sidebar { padding: 1.5rem; } }
     @media (max-width: 767.98px) { .orders-card-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 575.98px) { .orders-shell, .orders-sidebar, .orders-card, .orders-empty { border-radius: 24px; } .orders-chip, .orders-badge, .orders-link { width: 100%; justify-content: center; } }
+    @media (max-width: 575.98px) { .orders-shell, .orders-sidebar, .orders-card, .orders-empty { border-radius: 24px; } .orders-chip, .orders-badge, .orders-link { width: 100%; justify-content: center; } .orders-status-stack { justify-items: stretch; } .orders-status-meta { text-align: left; } }
 </style>
 @endpush
 
@@ -152,6 +155,16 @@
                         @php
                             $itemCount = (int) ($order->items_count ?: $order->items->sum('quantity'));
                             $placedAt = $order->placed_at ?: $order->created_at;
+                            $latest = $order->latestLog;
+                            $displayStatus = $latest?->status?->name ?? $order->status ?? 'Pending';
+                            $displayStatusKey = strtolower(trim((string) ($latest?->status?->name ?? $order->order_status ?? $order->status ?? 'pending')));
+                            $displayStatusKey = str_replace(' ', '_', $displayStatusKey);
+                            $displayStatusKey = $displayStatusKey === 'complete' ? 'completed' : ($displayStatusKey === 'canceled' ? 'cancelled' : $displayStatusKey);
+                            $trackingLink = $latest?->tracking_link ?: $order->tracking_link;
+                            $trackingNumber = $latest?->tracking_number ?: $order->tracking_number;
+                            $shippingPartner = $latest?->shipping_partner ?: $order->shipping_partner;
+                            $trackingSearch = trim(collect([$shippingPartner, $trackingNumber])->filter()->implode(' '));
+                            $trackingHref = $trackingLink ?: ($trackingSearch !== '' ? 'https://www.google.com/search?q=' . rawurlencode($trackingSearch) : null);
                             $previewItems = $order->items->take(3)->map(fn ($item) => $item->product_name ?: optional($item->product)->product_name ?: 'Product')->implode(' - ');
                             $shippingLabel = $order->shipping_eta ?: ($order->shipping_zone ? 'Zone ' . $order->shipping_zone : 'To be confirmed');
                         @endphp
@@ -163,7 +176,19 @@
                                     <div class="orders-order-meta">Placed {{ optional($placedAt)->format('F j, Y \a\t g:i a') ?: 'Recently' }} | {{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</div>
                                 </div>
                                 <div class="orders-card-actions">
-                                    <span class="orders-badge" data-tone="{{ $statusTone($order->order_status) }}"><i class="fa fa-box"></i>{{ $order->status }}</span>
+                                    <div class="orders-status-stack">
+                                        <span class="orders-badge" data-tone="{{ $statusTone($displayStatusKey) }}"><i class="fa fa-box"></i>{{ $displayStatus }}</span>
+                                        @if ($latest || $trackingHref)
+                                            <div class="orders-status-meta">
+                                                @if ($latest)
+                                                    <div>Updated {{ $latest->created_at->diffForHumans() }}</div>
+                                                @endif
+                                                @if ($trackingHref)
+                                                    <a href="{{ $trackingHref }}" target="_blank" rel="noopener noreferrer">Track package</a>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
                                     <span class="orders-badge" data-tone="{{ $paymentTone($order->payment_status) }}"><i class="fa fa-credit-card"></i>{{ $order->payment_status_label }}</span>
                                 </div>
                             </div>

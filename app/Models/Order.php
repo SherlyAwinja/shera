@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -87,6 +88,13 @@ class Order extends Model
         return $this->hasMany(OrderLog::class);
     }
 
+    /**
+     * Latest single log for quick access in listing
+     */
+    public function latestLog(): HasOne
+    {
+        return $this->hasOne(OrderLog::class)->latestOfMany();
+    }
 
     public function address(): BelongsTo
     {

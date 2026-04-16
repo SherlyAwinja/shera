@@ -17,7 +17,7 @@ class OrderService
     public function getUserOrders($user, int $perPage = 10): LengthAwarePaginator
     {
         return Order::where('user_id', $user->id)
-            ->with(['items.product', 'address']) // Removed payment and shippingAddress
+            ->with(['items.product', 'address', 'latestLog.status'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
     }
@@ -33,8 +33,11 @@ class OrderService
     {
         return Order::where('id', $orderId)
             ->where('user_id', $user->id)
-            ->with(['items.product', 'address']) // Removed payment and shippingAddress
-             ->orderBy('created_at', 'desc')
-             ->first();
+            ->with(['items.product', 'address',
+            'logs' => function($q) {
+                $q->with(['status', 'updatedByAdmin'])->orderBy('created_at', 'desc');
+            }
+            ])
+            ->first();
     }
 }
