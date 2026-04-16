@@ -22,13 +22,14 @@ class WalletController extends Controller
         Session::put('page', 'wallets');
         $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
+            'pending_requests' => ['nullable', 'boolean'],
         ]);
 
         if ($accessRedirect = $this->redirectIfUnauthorized('view')) {
             return $accessRedirect;
         }
 
-        $result = $this->walletService->wallets($request->only('user_id'));
+        $result = $this->walletService->wallets($request->only('user_id', 'pending_requests'));
         $columnPrefs = ColumnPreference::where('admin_id', Auth::guard('admin')->id())
             ->where('table_name', 'wallets')
             ->first();
@@ -44,6 +45,8 @@ class WalletController extends Controller
             'selectedUserId' => $result['selectedUserId'],
             'selectedUser' => $selectedUser,
             'selectedUserBalance' => $result['selectedUserBalance'],
+            'pendingRequestsOnly' => $result['pendingRequestsOnly'],
+            'pendingRequestCount' => $result['pendingRequestCount'],
             'walletsSavedOrder' => $walletsSavedOrder,
             'walletsHiddenCols' => $walletsHiddenCols,
         ]);

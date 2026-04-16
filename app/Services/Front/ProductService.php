@@ -5,6 +5,7 @@ namespace App\Services\Front;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Models\ProductVariant;
 use App\Models\ProductsAttribute;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -19,6 +20,9 @@ class ProductService
             'category.parentcategory',
             'attributes' => function ($query) {
                 $query->where('status', 1)->orderBy('sort', 'asc');
+            },
+            'productVariants' => function ($query) {
+                $query->orderBy('color', 'asc')->orderBy('size', 'asc');
             },
             'brand',
             'product_images' => function ($query) {
@@ -124,11 +128,17 @@ class ProductService
         // Apply size filter
         $sizes = $this->parseFilterValues('size');
         if (count($sizes) > 0) {
-            $getProductIds = ProductsAttribute::select('product_id')
+            $attributeProductIds = ProductsAttribute::select('product_id')
                 ->whereIn('size', $sizes)
                 ->where('status', 1)
                 ->pluck('product_id')
                 ->toArray();
+            $variantProductIds = ProductVariant::select('product_id')
+                ->whereIn('size', $sizes)
+                ->pluck('product_id')
+                ->toArray();
+            $getProductIds = array_values(array_unique(array_merge($attributeProductIds, $variantProductIds)));
+
             if (count($getProductIds) > 0) {
                 $query->whereIn('id', $getProductIds);
             }
@@ -430,6 +440,9 @@ class ProductService
                 'product_images' => function ($query) {
                     $query->where('status', 1)->orderBy('sort', 'asc');
                 },
+                'productVariants' => function ($query) {
+                    $query->orderBy('color', 'asc')->orderBy('size', 'asc');
+                },
                 'attributes' => function ($query) {
                     $query->where('status', 1)->orderBy('sort', 'asc');
                 },
@@ -439,6 +452,9 @@ class ProductService
             ->whereIn('category_id', $categoryIds)
             ->where(function ($query) {
                 $query->where('stock', '>', 0)
+                    ->orWhereHas('productVariants', function ($variantQuery) {
+                        $variantQuery->where('stock', '>', 0);
+                    })
                     ->orWhereHas('attributes', function ($attributeQuery) {
                         $attributeQuery->where('status', 1)->where('stock', '>', 0);
                     });
@@ -451,6 +467,23 @@ class ProductService
             ->take(6)
             ->get()
             ->map(function (Product $similar) {
+                if ($this->hasCanonicalVariants($similar)) {
+                    $inStockVariants = $similar->productVariants
+                        ->filter(fn (ProductVariant $variant) => (int) $variant->stock > 0)
+                        ->values();
+                    $sizeLabels = collect($this->uniqueLabeledValues($similar->productVariants->pluck('size')->all()));
+                    $quickAddVariant = $inStockVariants->count() === 1 ? $inStockVariants->first() : null;
+
+                    $similar->has_selectable_sizes = $sizeLabels->isNotEmpty();
+                    $similar->in_stock_attribute_count = $inStockVariants->count();
+                    $similar->quick_add_size = $quickAddVariant?->size;
+                    $similar->quick_add_color = $quickAddVariant?->color;
+                    $similar->can_quick_add = $quickAddVariant !== null;
+                    $similar->is_available = $inStockVariants->isNotEmpty();
+
+                    return $similar;
+                }
+
                 $activeAttributes = $similar->attributes
                     ->where('status', 1)
                     ->sortBy('sort')
@@ -459,22 +492,25 @@ class ProductService
                     ->filter(fn (ProductsAttribute $attribute) => (int) $attribute->stock > 0)
                     ->values();
                 $hasSelectableSizes = $activeAttributes->isNotEmpty();
+                $availableColors = $this->productColorLabels($similar);
                 $quickAddSize = null;
+                $quickAddColor = count($availableColors) === 1 ? $availableColors[0] : null;
                 $canQuickAdd = false;
 
                 if ($hasSelectableSizes) {
                     if ($inStockAttributes->count() === 1) {
                         $quickAddSize = (string) $inStockAttributes->first()->size;
-                        $canQuickAdd = true;
+                        $canQuickAdd = count($availableColors) <= 1;
                     }
                 } else {
                     $quickAddSize = 'NA';
-                    $canQuickAdd = (int) $similar->stock > 0;
+                    $canQuickAdd = (int) $similar->stock > 0 && count($availableColors) <= 1;
                 }
 
                 $similar->has_selectable_sizes = $hasSelectableSizes;
                 $similar->in_stock_attribute_count = $inStockAttributes->count();
                 $similar->quick_add_size = $quickAddSize;
+                $similar->quick_add_color = $quickAddColor;
                 $similar->can_quick_add = $canQuickAdd;
                 $similar->is_available = $hasSelectableSizes
                     ? $inStockAttributes->isNotEmpty()
@@ -495,6 +531,14 @@ class ProductService
             ]);
         }
 
+        if (!$product->relationLoaded('productVariants')) {
+            $product->load([
+                'productVariants' => function ($query) {
+                    $query->orderBy('color', 'asc')->orderBy('size', 'asc');
+                },
+            ]);
+        }
+
         if (!$product->relationLoaded('product_images')) {
             $product->load([
                 'product_images' => function ($query) {
@@ -503,10 +547,52 @@ class ProductService
             ]);
         }
 
+        if ($this->hasCanonicalVariants($product)) {
+            $selectedColor = $this->resolveSelectedColorLabel($product, $preferredColor);
+            $selectedVariant = $this->resolveSelectedProductVariant($product, $selectedColor, $preferredSize);
+            $pricing = $selectedVariant
+                ? Product::getAttributePrice($product->id, $selectedVariant->size, $selectedVariant->color)
+                : $this->baseProductPricing($product);
+            $stock = $this->buildCanonicalStockState($selectedVariant);
+            $sizes = $this->variantsForColor($product, $selectedColor)
+                ->map(function (ProductVariant $variant) use ($selectedVariant) {
+                    return [
+                        'id' => (int) $variant->id,
+                        'size' => (string) $variant->size,
+                        'stock' => (int) $variant->stock,
+                        'in_stock' => (int) $variant->stock > 0,
+                        'checked' => $selectedVariant !== null && (int) $selectedVariant->id === (int) $variant->id,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            return [
+                'product_id' => (int) $product->id,
+                'product_name' => (string) $product->product_name,
+                'product_url' => !empty($product->product_url) ? url($product->product_url) : null,
+                'color' => $selectedColor ?? '',
+                'image' => $this->resolveProductImageUrl($product, $selectedColor),
+                'product_price' => (int) ($pricing['product_price'] ?? 0),
+                'final_price' => (int) ($pricing['final_price'] ?? 0),
+                'percent' => (int) ($pricing['percent'] ?? 0),
+                'has_discount' => (int) ($pricing['percent'] ?? 0) > 0
+                    && (int) ($pricing['final_price'] ?? 0) < (int) ($pricing['product_price'] ?? 0),
+                'selected_size' => $selectedVariant?->size,
+                'sizes' => $sizes,
+                'has_sizes' => !empty($sizes),
+                'stock' => $stock['stock'],
+                'in_stock' => $stock['in_stock'],
+                'stock_label' => $stock['stock_label'],
+                'stock_message' => $stock['stock_message'],
+                'can_purchase' => $stock['in_stock'],
+            ];
+        }
+
         $selectedColor = $this->resolveSelectedColorLabel($product, $preferredColor);
         $selectedAttribute = $this->resolveSelectedAttribute($product, $preferredSize);
         $pricing = $selectedAttribute
-            ? Product::getAttributePrice($product->id, $selectedAttribute->size)
+            ? Product::getAttributePrice($product->id, $selectedAttribute->size, $selectedColor)
             : $this->baseProductPricing($product);
         $stock = $this->buildStockState($product, $selectedAttribute, $selectedColor);
         $selectedSize = $selectedAttribute ? $selectedAttribute->size : null;
@@ -586,7 +672,7 @@ class ProductService
             ]);
         }
 
-        return collect($this->parseProductColors((string) $product->product_color))
+        return collect($this->productColorLabels($product))
             ->map(function ($label) use ($product, $currentSelectedColor) {
                 return (object) [
                     'id' => (int) $product->id,
@@ -608,30 +694,12 @@ class ProductService
     private function parseProductColors(string $rawColors): array
     {
         $parts = preg_split('/\s*,\s*/', $rawColors, -1, PREG_SPLIT_NO_EMPTY);
-        $labels = [];
-        $seen = [];
-
-        foreach ($parts as $part) {
-            $label = trim((string) $part);
-            if ($label === '') {
-                continue;
-            }
-
-            $normalized = strtolower($label);
-            if (isset($seen[$normalized])) {
-                continue;
-            }
-
-            $seen[$normalized] = true;
-            $labels[] = $label;
-        }
-
-        return $labels;
+        return $this->uniqueLabeledValues($parts);
     }
 
     private function resolveSelectedColorLabel(Product $product, ?string $preferredColor = null): ?string
     {
-        $labels = $this->parseProductColors((string) $product->product_color);
+        $labels = $this->productColorLabels($product);
 
         if (empty($labels)) {
             return null;
@@ -643,6 +711,18 @@ class ProductService
                     return $label;
                 }
             }
+        }
+
+        if ($this->hasCanonicalVariants($product)) {
+            $firstInStockVariant = $product->productVariants->first(function (ProductVariant $variant) {
+                return (int) $variant->stock > 0;
+            });
+
+            if ($firstInStockVariant) {
+                return $firstInStockVariant->color;
+            }
+
+            return $labels[0];
         }
 
         $firstInStock = collect($labels)->first(function (string $label) use ($product) {
@@ -660,13 +740,112 @@ class ProductService
 
     private function productHasColor(Product $product, string $color): bool
     {
-        foreach ($this->parseProductColors((string) $product->product_color) as $label) {
+        foreach ($this->productColorLabels($product) as $label) {
             if ($this->colorsMatch($label, $color)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function productColorLabels(Product $product): array
+    {
+        if ($this->hasCanonicalVariants($product)) {
+            return $this->uniqueLabeledValues($product->productVariants->pluck('color')->all());
+        }
+
+        return $this->parseProductColors((string) $product->product_color);
+    }
+
+    private function uniqueLabeledValues(array $values): array
+    {
+        $labels = [];
+        $seen = [];
+
+        foreach ($values as $value) {
+            $label = trim((string) $value);
+            if ($label === '') {
+                continue;
+            }
+
+            $normalized = strtolower($label);
+            if (isset($seen[$normalized])) {
+                continue;
+            }
+
+            $seen[$normalized] = true;
+            $labels[] = $label;
+        }
+
+        return $labels;
+    }
+
+    private function hasCanonicalVariants(Product $product): bool
+    {
+        return $product->relationLoaded('productVariants')
+            ? $product->productVariants->isNotEmpty()
+            : $product->productVariants()->exists();
+    }
+
+    private function variantsForColor(Product $product, ?string $preferredColor = null)
+    {
+        $variants = $product->productVariants;
+
+        if (empty($preferredColor)) {
+            return $variants->values();
+        }
+
+        return $variants
+            ->filter(function (ProductVariant $variant) use ($preferredColor) {
+                return $this->colorsMatch($variant->color, $preferredColor);
+            })
+            ->values();
+    }
+
+    private function resolveSelectedProductVariant(Product $product, ?string $preferredColor = null, ?string $preferredSize = null): ?ProductVariant
+    {
+        $variants = $this->variantsForColor($product, $preferredColor);
+
+        if ($variants->isEmpty()) {
+            $variants = $product->productVariants->values();
+        }
+
+        $preferredVariant = null;
+
+        if (!empty($preferredSize)) {
+            $preferredVariant = $variants->first(function (ProductVariant $variant) use ($preferredSize) {
+                return strtolower(trim((string) $variant->size)) === strtolower(trim((string) $preferredSize));
+            });
+
+            if ($preferredVariant && (int) $preferredVariant->stock > 0) {
+                return $preferredVariant;
+            }
+        }
+
+        $firstInStock = $variants->first(function (ProductVariant $variant) {
+            return (int) $variant->stock > 0;
+        });
+
+        return $firstInStock ?: $preferredVariant ?: $variants->first();
+    }
+
+    private function buildCanonicalStockState(?ProductVariant $variant): array
+    {
+        $stock = $variant ? max(0, (int) $variant->stock) : 0;
+        $inStock = $stock > 0;
+        $descriptor = $variant
+            ? trim(sprintf('%s / %s', $variant->color, $variant->size), ' /')
+            : 'This combination';
+
+        return [
+            'stock' => $stock,
+            'in_stock' => $inStock,
+            'stock_label' => $inStock ? 'In stock' : 'Out of stock',
+            'stock_message' => $inStock
+                ? sprintf('%d unit%s available in %s.', $stock, $stock === 1 ? '' : 's', $descriptor)
+                : sprintf('%s is currently out of stock.', $descriptor),
+        ];
     }
 
     private function colorsMatch(?string $left, ?string $right): bool

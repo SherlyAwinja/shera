@@ -15,11 +15,10 @@ class ProductVariantColorStockTest extends TestCase
         $productId = $this->createProduct([
             'product_color' => 'Black,Brown',
             'stock' => 11,
-            'color_stock' => json_encode([
-                'Black' => 4,
-                'Brown' => 7,
-            ]),
         ]);
+
+        $this->createVariant($productId, 'M', 'Black', 4);
+        $this->createVariant($productId, 'M', 'Brown', 7);
 
         $response = $this->postJson(route('product.variant'), [
             'product_id' => $productId,
@@ -31,6 +30,7 @@ class ProductVariantColorStockTest extends TestCase
             ->assertJson([
                 'status' => true,
                 'color' => 'Brown',
+                'selected_size' => 'M',
                 'stock' => 7,
                 'in_stock' => true,
                 'can_purchase' => true,
@@ -79,5 +79,17 @@ class ProductVariantColorStockTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+    }
+
+    private function createVariant(int $productId, string $size, string $color, int $stock): int
+    {
+        return (int) DB::table('product_variants')->insertGetId([
+            'product_id' => $productId,
+            'size' => $size,
+            'color' => $color,
+            'stock' => $stock,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

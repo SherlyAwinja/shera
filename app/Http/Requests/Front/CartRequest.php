@@ -42,6 +42,8 @@ class CartRequest extends FormRequest
         elseif ($routeName === 'cart.update' || ($method === 'PATCH' && $this->routeIs('cart.update'))) {
             $rules = [
                 'qty' => 'required|integer|min:1',
+                'size' => 'nullable|string',
+                'color' => 'nullable|string|max:200',
                 // cart id comes from route (validated via route model binding if used)
             ];
         }
@@ -58,6 +60,12 @@ class CartRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('size')) {
+            $this->merge([
+                'size' => trim((string) $this->input('size')) ?: null,
+            ]);
+        }
+
         if ($this->has('color')) {
             $this->merge([
                 'color' => trim((string) $this->input('color')) ?: null,

@@ -183,9 +183,14 @@ class ProductController extends Controller
         $data = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'size' => ['required', 'string', 'max:100'],
+            'color' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $price = Product::getAttributePrice((int) $data['product_id'], (string) $data['size']);
+        $price = Product::getAttributePrice(
+            (int) $data['product_id'],
+            (string) $data['size'],
+            isset($data['color']) ? (string) $data['color'] : null
+        );
 
         return response()->json($price, ($price['status'] ?? false) ? 200 : 422);
     }

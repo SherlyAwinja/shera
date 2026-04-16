@@ -5,7 +5,7 @@
     $cartLineCount = $cartItemsCollection->count();
     $cartItemCount = (int) $cartItemsCollection->sum('qty');
     $cartSubtotal = (float) ($subtotal ?? 0);
-    $cartWalletApplied = (float) ($wallet_applied ?? 0);
+    $cartDiscount = (float) ($discount ?? 0);
     $cartTotal = (float) ($total ?? 0);
 @endphp
 
@@ -45,6 +45,13 @@
     .cart-hero-stat-label{display:block;font-size:.75rem;letter-spacing:.12rem;text-transform:uppercase;color:#6b7280;margin-bottom:.35rem}
     .cart-hero-stat-value{display:block;font-size:1.28rem;font-weight:700;color:var(--front-luxe-text);line-height:1.1}
     .cart-hero-note{margin-top:1rem;padding:1rem 1.05rem;border-radius:24px;background:rgba(18,50,59,.05);color:#4b5563;line-height:1.7}
+    .cart-variant-editor{margin-top:.9rem;max-width:380px}
+    .cart-variant-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+    .cart-variant-field{display:flex;flex-direction:column;gap:.35rem;margin:0;text-align:left}
+    .cart-variant-label{font-size:.72rem;letter-spacing:.08rem;text-transform:uppercase;color:#6b7280;font-weight:700}
+    .cart-variant-select{min-height:42px;border-radius:14px;border:1px solid rgba(18,50,59,.12);background:rgba(255,255,255,.96);box-shadow:none}
+    .cart-variant-select:focus{border-color:rgba(15,106,102,.45);box-shadow:0 0 0 .2rem rgba(15,106,102,.12)}
+    .cart-variant-note{margin-top:.55rem;font-size:.8rem;line-height:1.5;color:#6b7280;text-align:left}
     @keyframes cartHeroFloat{from{transform:translate3d(0,0,0)}to{transform:translate3d(18px,-16px,0)}}
     @media (max-width:991.98px){
         .cart-hero-grid{grid-template-columns:1fr}
@@ -55,6 +62,7 @@
         .cart-hero-actions{flex-direction:column}
         .cart-hero-link{justify-content:center}
         .cart-hero-stats{grid-template-columns:1fr}
+        .cart-variant-grid{grid-template-columns:1fr}
     }
 </style>
 @endpush
@@ -70,7 +78,7 @@
                         Bag Review
                     </span>
                     <h1 class="front-page-title cart-hero-title">Shape the final mix before you move into checkout.</h1>
-                    <p class="front-page-subtitle cart-hero-subtitle">Review variants, tune quantities, apply wallet credit, and carry a cleaner order summary into the next step.</p>
+                    <p class="front-page-subtitle cart-hero-subtitle">Review variants, tune quantities, and carry a cleaner order summary into the next step.</p>
 
                     <div class="cart-hero-mini">
                         <span><strong>{{ $cartItemCount }}</strong> items</span>
@@ -114,8 +122,8 @@
                             <span class="cart-hero-stat-value">KSH.{{ number_format($cartSubtotal, 2) }}</span>
                         </div>
                         <div class="cart-hero-stat">
-                            <span class="cart-hero-stat-label">Wallet Applied</span>
-                            <span class="cart-hero-stat-value">{{ $cartWalletApplied > 0 ? 'KSH.' . number_format($cartWalletApplied, 2) : 'Not used' }}</span>
+                            <span class="cart-hero-stat-label">Discounts</span>
+                            <span class="cart-hero-stat-value">{{ $cartDiscount > 0 ? 'KSH.' . number_format($cartDiscount, 2) : 'None' }}</span>
                         </div>
                         <div class="cart-hero-stat">
                             <span class="cart-hero-stat-label">Bag Lines</span>
@@ -128,7 +136,7 @@
                     </div>
 
                     <div class="cart-hero-note">
-                        Use this page to resolve size, color, coupon, and wallet decisions first. The checkout page can then stay focused on delivery details and final confirmation.
+                        Use this page to resolve size, color, and coupon decisions first. Payment method and wallet credit now live in checkout beside delivery details.
                     </div>
                 </div>
             </div>

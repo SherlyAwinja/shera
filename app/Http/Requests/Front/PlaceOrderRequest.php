@@ -14,15 +14,18 @@ class PlaceOrderRequest extends FormRequest
 
     public function rules(): array
     {
+        $paymentMethods = array_keys(config('checkout.payment.methods', []));
+
         return [
             'address_id' => ['nullable', 'integer', 'exists:user_addresses,id'],
-            'payment_method' => ['required', 'string', Rule::in(['cod'])],
+            'payment_method' => ['required', 'string', Rule::in($paymentMethods)],
         ];
     }
 
     public function messages(): array
     {
         return [
+            'payment_method.required' => 'Choose a payment method before placing the order.',
             'payment_method.in' => 'Select a valid payment method before placing the order.',
         ];
     }

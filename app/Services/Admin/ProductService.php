@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
 use App\Models\ProductsImage;
 use App\Models\ProductsAttribute;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Algolia\AlgoliaSearch\Exceptions\UnreachableException;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -72,295 +72,258 @@ class ProductService
     public function addEditProduct($request)
     {
         $data = $request->all();
+        $isUpdate = isset($data['id']) && $data['id'] != "";
+        $variants = $this->normalizeVariantsInput($data['variants'] ?? []);
+        $message = $isUpdate ? "Product updated successfully" : "Product added successfully";
 
-        if (isset($data['id']) && $data['id'] != "") {
-            $product = Product::find($data['id']);
-            $message = "Product updated successfully";
-        } else {
-            $product = new Product();
-            $message = "Product added successfully";
-        }
+        DB::transaction(function () use ($data, $variants, $isUpdate) {
+            $product = $isUpdate
+                ? Product::findOrFail($data['id'])
+                : new Product();
 
-        $this->validateAttributeConflicts($data, $product->id ?? null);
+            $isNewProduct = !$product->exists;
+            $productColors = $this->extractVariantColors($variants);
 
-        $product->admin_id = Auth::guard('admin')->user()->id;
-        $product->admin_type = Auth::guard('admin')->user()->role;
+            $product->admin_id = Auth::guard('admin')->user()->id;
+            $product->admin_type = Auth::guard('admin')->user()->role;
 
-        $product->category_id = $data['category_id'];
-        $product->brand_id = $data['brand_id'];
-        $product->product_name = $data['product_name'];
-        $product->product_code = $data['product_code'];
-        $productColors = $this->normalizeColorLabels($data['product_color'] ?? []);
-        $colorStock = $this->normalizeColorStockInput($data['color_stock'] ?? [], $productColors);
-        $supportsColorStock = Schema::hasColumn('products', 'color_stock');
-        $product->product_color = empty($productColors) ? null : implode(',', $productColors);
-        if ($supportsColorStock) {
-            $product->color_stock = empty($productColors) ? null : $colorStock;
-        }
+            $product->category_id = $data['category_id'];
+            $product->brand_id = $data['brand_id'];
+            $product->product_name = $data['product_name'];
+            $product->product_code = $data['product_code'];
+            $product->product_color = empty($productColors) ? null : implode(',', $productColors);
 
-        if (Schema::hasColumn('products', 'gender')) {
-            $product->gender = $data['gender'] ?? null;
-        }
-        if (Schema::hasColumn('products', 'occasion')) {
-            $occasionInput = $data['occasion'] ?? [];
-            if (!is_array($occasionInput)) {
-                $occasionInput = preg_split('/[~,]/', (string) $occasionInput);
+            if (Schema::hasColumn('products', 'color_stock')) {
+                $product->color_stock = null;
             }
-            $occasionValues = array_values(array_unique(array_filter(array_map(
-                fn ($value) => strtolower(trim((string) $value)),
-                (array) $occasionInput
-            ))));
-            $product->occasion = empty($occasionValues) ? null : implode(',', $occasionValues);
-        }
-        $product->group_code = $data['group_code'];
-        $product->product_price = $data['product_price'];
-        $product->product_discount = $data['product_discount'] ?? 0;
-        $product->product_gst = $data['product_gst'] ?? 0;
-        $product->dimensions = !empty($data['product_dimensions']) ? $data['product_dimensions'] : null;
-        $product->is_featured = $data['is_featured'] ?? 'No';
-        $productSort = $data['sort'] ?? 0;
-        if (is_array($productSort)) {
-            $productSort = $productSort[0] ?? 0;
-        }
-        $product->sort = is_numeric($productSort) ? (int) $productSort : 0;
 
+            if (Schema::hasColumn('products', 'gender')) {
+                $product->gender = $data['gender'] ?? null;
+            }
+            if (Schema::hasColumn('products', 'occasion')) {
+                $occasionInput = $data['occasion'] ?? [];
+                if (!is_array($occasionInput)) {
+                    $occasionInput = preg_split('/[~,]/', (string) $occasionInput);
+                }
+                $occasionValues = array_values(array_unique(array_filter(array_map(
+                    fn ($value) => strtolower(trim((string) $value)),
+                    (array) $occasionInput
+                ))));
+                $product->occasion = empty($occasionValues) ? null : implode(',', $occasionValues);
+            }
 
-        // Calculate discount & final price
-        if(!empty($data['product_discount']) && $data['product_discount'] > 0) {
-            $product->discount_applied_on = 'product';
-            $product->product_discount_amount = $data['product_price'] * $data['product_discount'] / 100;
-        } else {
-            $getCategoryDiscount = Category::select('discount')->where('id', $data['category_id'])->first();
-            if ($getCategoryDiscount && $getCategoryDiscount->discount > 0) {
-                $product->discount_applied_on = 'category';
-                $product->product_discount = $getCategoryDiscount->discount;
-                $product->product_discount_amount = ($data['product_price'] * $getCategoryDiscount->discount) / 100;
+            $product->group_code = $data['group_code'] ?? null;
+            $product->product_price = $data['product_price'];
+            $product->product_discount = $data['product_discount'] ?? 0;
+            $product->product_gst = $data['product_gst'] ?? 0;
+            $product->dimensions = !empty($data['product_dimensions']) ? $data['product_dimensions'] : null;
+            $product->is_featured = $data['is_featured'] ?? 'No';
+
+            $productSort = $data['sort'] ?? 0;
+            if (is_array($productSort)) {
+                $productSort = $productSort[0] ?? 0;
+            }
+            $product->sort = is_numeric($productSort) ? (int) $productSort : 0;
+
+            if (!empty($data['product_discount']) && $data['product_discount'] > 0) {
+                $product->discount_applied_on = 'product';
+                $product->product_discount_amount = $data['product_price'] * $data['product_discount'] / 100;
             } else {
-                $product->discount_applied_on = '';
-                $product->product_discount_amount = 0;
-            }
-        }
-
-        $product->final_price = $data['product_price'] - $product->product_discount_amount;
-
-        // Optional Fields
-        $product->material = $data['material'] ?? '';
-        $product->description = $data['description'] ?? '';
-        $product->search_keywords = $data['search_keywords'] ?? '';
-        $product->meta_title = $data['meta_title'] ?? '';
-        $product->meta_description = $data['meta_description'] ?? '';
-        $product->meta_keywords = $data['meta_keywords'] ?? '';
-
-        $product->status = 1;
-
-        if(!empty($data['main_image_hidden'])) {
-            $sourcePath = public_path('temp/'.$data['main_image_hidden']);
-            $destinationPath = public_path('front/images/products/'.$data['main_image_hidden']);
-
-            // Create destination directory if it doesn't exist
-            $imageDir = public_path('front/images/products');
-            if (!file_exists($imageDir)) {
-                mkdir($imageDir, 0755, true);
+                $getCategoryDiscount = Category::select('discount')->where('id', $data['category_id'])->first();
+                if ($getCategoryDiscount && $getCategoryDiscount->discount > 0) {
+                    $product->discount_applied_on = 'category';
+                    $product->product_discount = $getCategoryDiscount->discount;
+                    $product->product_discount_amount = ($data['product_price'] * $getCategoryDiscount->discount) / 100;
+                } else {
+                    $product->discount_applied_on = '';
+                    $product->product_discount_amount = 0;
+                }
             }
 
-            if(file_exists($sourcePath)) {
-                @copy($sourcePath, $destinationPath);
-                @unlink($sourcePath);
-            }
+            $product->final_price = $data['product_price'] - $product->product_discount_amount;
+            $product->material = $data['material'] ?? '';
+            $product->description = $data['description'] ?? '';
+            $product->search_keywords = $data['search_keywords'] ?? '';
+            $product->meta_title = $data['meta_title'] ?? '';
+            $product->meta_description = $data['meta_description'] ?? '';
+            $product->meta_keywords = $data['meta_keywords'] ?? '';
+            $product->status = 1;
 
-            $product->main_image = $data['main_image_hidden'];
-        }
+            if (!empty($data['main_image_hidden'])) {
+                $sourcePath = public_path('temp/' . $data['main_image_hidden']);
+                $destinationPath = public_path('front/images/products/' . $data['main_image_hidden']);
+                $imageDir = public_path('front/images/products');
 
-        // Upload Product Video
-        if(!empty($data['product_video_hidden'])) {
-            $sourcePath = public_path('temp/'.$data['product_video_hidden']);
-            $destinationPath = public_path('front/videos/products/'.$data['product_video_hidden']);
-
-            // Create destination directory if it doesn't exist
-            $videoDir = public_path('front/videos/products');
-            if (!file_exists($videoDir)) {
-                mkdir($videoDir, 0755, true);
-            }
-
-            if(file_exists($sourcePath)) {
-                @copy($sourcePath, $destinationPath);
-                @unlink($sourcePath);
-            }
-
-            $product->product_video = $data['product_video_hidden'];
-        }
-
-
-        // Generate product_url only if in create mode
-        if ($product->wasRecentlyCreated) {
-            $slug = Str::slug($data['product_name']);
-            $product->product_url = $slug . '-' . $product->id;
-        }
-        // In update mode, update product_url only if provided
-        else {
-            if (!empty($data['product_url'])) {
-                $product->product_url = Str::slug($data['product_url']);
-            }
-        }
-
-        // Save initial product URL if exists
-        $product->product_url = $product->product_url ?? null;
-
-        $this->saveProductWithScoutFallback($product);
-
-        // Sync other categories for this product
-        if (!empty($data['other_categories']) && is_array($data['other_categories'])) {
-            // Clear old records
-            ProductsCategory::where('product_id', $product->id)->delete();
-
-            // Insert new ones
-            foreach ($data['other_categories'] as $catId) {
-                ProductsCategory::create([
-                    'product_id'  => $product->id,
-                    'category_id' => $catId,
-                ]);
-            }
-        } else {
-            // If none selected, clear existing records
-            ProductsCategory::where('product_id', $product->id)->delete();
-        }
-
-        // Sync filter values for this product
-        if(!empty($data['filter_values']) && is_array($data['filter_values'])) {
-            // data['filter_values']=[filter_id=>filter_value_id,...]
-            // Keep only selected values (non-empty)
-            $values = array_values(array_filter($data['filter_values']));
-            $product->filterValues()->sync($values);
-        } else {
-            $product->filterValues()->detach();
-        }
-
-        // Upload Alternate Product Images
-        // NOTE: Frontend stores uploaded filenames in hidden field: product_images_hidden
-        if(!empty($data['product_images_hidden'])) {
-            // Ensure we have an array
-            $imageFiles = is_array($data['product_images_hidden'])
-                ? $data['product_images_hidden']
-                : explode(',', $data['product_images_hidden']);
-
-            // Remove any empty values
-            $imageFiles = array_filter($imageFiles);
-
-            foreach ($imageFiles as $index => $filename) {
-                $sourcePath = public_path('temp/'.$filename);
-                $destinationPath = public_path('front/images/products/'.$filename);
+                if (!file_exists($imageDir)) {
+                    mkdir($imageDir, 0755, true);
+                }
 
                 if (file_exists($sourcePath)) {
                     @copy($sourcePath, $destinationPath);
                     @unlink($sourcePath);
                 }
 
-                ProductsImage::create([
-                    'product_id' => $product->id,
-                    'image' => $filename,
-                    'sort' => $index,
-                    'status' => 1,
-                ]);
+                $product->main_image = $data['main_image_hidden'];
             }
-        }
 
-        // Update colors for existing product images (if provided)
-        if (!empty($data['product_image_color']) && is_array($data['product_image_color'])) {
-            foreach ($data['product_image_color'] as $imageId => $color) {
-                $colorValue = trim((string) $color);
-                ProductsImage::where('id', $imageId)
-                    ->where('product_id', $product->id)
-                    ->update(['color' => $colorValue !== '' ? $colorValue : null]);
-            }
-        }
+            if (!empty($data['product_video_hidden'])) {
+                $sourcePath = public_path('temp/' . $data['product_video_hidden']);
+                $destinationPath = public_path('front/videos/products/' . $data['product_video_hidden']);
+                $videoDir = public_path('front/videos/products');
 
-        // Add Product Attributes
-        foreach(($data['sku'] ?? []) as $key => $value) {
-            $size = $data['size'][$key] ?? null;
-            $price = $data['price'][$key] ?? null;
-            $stock = $data['stock'][$key] ?? 0;
-            $attributeSortInput = $data['attr_sort'] ?? ($data['sort'] ?? []);
-            $attributeSort = is_array($attributeSortInput) ? ($attributeSortInput[$key] ?? 0) : 0;
-
-            if(!empty($value) && !empty($size) && !empty($price)) {
-                $attribute = new ProductsAttribute;
-                $attribute->product_id = $product->id;
-                $attribute->sku = $value;
-                $attribute->size = $size;
-                $attribute->price = $price;
-                if(!empty($stock)) {
-                    $attribute->stock = $stock;
+                if (!file_exists($videoDir)) {
+                    mkdir($videoDir, 0755, true);
                 }
-                $attribute->sort = is_numeric($attributeSort) ? (int) $attributeSort : 0;
-                $attribute->status = 1;
-                $attribute->save();
-            }
-        }
 
-        // Edit Product Attributes
-        if(isset($data['id']) && $data['id'] != "" && isset($data['attrId'])) {
-            foreach ($data['attrId'] as $key => $attr) {
-                if(!empty($attr)) {
-                    $update_attr = [
-                        'price' => $data['update_price'][$key],
-                        'stock' => $data['update_stock'][$key],
-                        'sort' => $data['update_sort'][$key],
-                    ];
-                    ProductsAttribute::where(['id' => $data['attrId'][$key]])->update($update_attr);
+                if (file_exists($sourcePath)) {
+                    @copy($sourcePath, $destinationPath);
+                    @unlink($sourcePath);
+                }
+
+                $product->product_video = $data['product_video_hidden'];
+            }
+
+            if ($isUpdate && !empty($data['product_url'])) {
+                $product->product_url = Str::slug($data['product_url']);
+            }
+
+            $product->product_url = $product->product_url ?? null;
+            $this->saveProductWithScoutFallback($product);
+
+            if ($isNewProduct && empty($product->product_url)) {
+                $product->product_url = Str::slug($data['product_name']) . '-' . $product->id;
+                $this->saveProductWithScoutFallback($product);
+            }
+
+            $this->syncProductVariants($product, $variants);
+
+            if (!empty($data['other_categories']) && is_array($data['other_categories'])) {
+                ProductsCategory::where('product_id', $product->id)->delete();
+
+                foreach ($data['other_categories'] as $catId) {
+                    ProductsCategory::create([
+                        'product_id' => $product->id,
+                        'category_id' => $catId,
+                    ]);
+                }
+            } else {
+                ProductsCategory::where('product_id', $product->id)->delete();
+            }
+
+            if (!empty($data['filter_values']) && is_array($data['filter_values'])) {
+                $values = array_values(array_filter($data['filter_values']));
+                $product->filterValues()->sync($values);
+            } else {
+                $product->filterValues()->detach();
+            }
+
+            if (!empty($data['product_images_hidden'])) {
+                $imageFiles = is_array($data['product_images_hidden'])
+                    ? $data['product_images_hidden']
+                    : explode(',', $data['product_images_hidden']);
+
+                $imageFiles = array_filter($imageFiles);
+
+                foreach ($imageFiles as $index => $filename) {
+                    $sourcePath = public_path('temp/' . $filename);
+                    $destinationPath = public_path('front/images/products/' . $filename);
+
+                    if (file_exists($sourcePath)) {
+                        @copy($sourcePath, $destinationPath);
+                        @unlink($sourcePath);
+                    }
+
+                    ProductsImage::create([
+                        'product_id' => $product->id,
+                        'image' => $filename,
+                        'sort' => $index,
+                        'status' => 1,
+                    ]);
                 }
             }
-        }
 
-        $this->syncProductStock($product, $colorStock);
+            if (!empty($data['product_image_color']) && is_array($data['product_image_color'])) {
+                foreach ($data['product_image_color'] as $imageId => $color) {
+                    $colorValue = trim((string) $color);
+                    ProductsImage::where('id', $imageId)
+                        ->where('product_id', $product->id)
+                        ->update(['color' => $colorValue !== '' ? $colorValue : null]);
+                }
+            }
+
+            $this->syncProductStock($product, [], $variants);
+        });
 
 
         return $message;
     }
 
-    private function validateAttributeConflicts(array $data, ?int $productId = null): void
+    private function normalizeVariantsInput($variantsInput): array
     {
-        $seenSizes = [];
+        if (!is_array($variantsInput)) {
+            return [];
+        }
 
-        foreach (($data['sku'] ?? []) as $key => $sku) {
-            $size = $data['size'][$key] ?? null;
-            $price = $data['price'][$key] ?? null;
+        $normalized = [];
+        $seen = [];
 
-            if (empty($sku) || empty($size) || empty($price)) {
+        foreach ($variantsInput as $index => $variant) {
+            if (!is_array($variant)) {
                 continue;
             }
 
-            if (ProductsAttribute::where('sku', $sku)->exists()) {
+            $size = trim((string) ($variant['size'] ?? ''));
+            $color = trim((string) ($variant['color'] ?? ''));
+            $stock = max(0, (int) ($variant['stock'] ?? 0));
+
+            if ($size === '' && $color === '' && !isset($variant['stock'])) {
+                continue;
+            }
+
+            if ($size === '' || $color === '') {
                 throw ValidationException::withMessages([
-                    'sku' => 'SKU already exists. Please add another SKU.',
+                    'variants' => 'Each variant must include both size and color values.',
                 ]);
             }
 
-            $normalizedSize = strtolower(trim((string) $size));
-            if (in_array($normalizedSize, $seenSizes, true)) {
-                throw ValidationException::withMessages([
-                    'size' => 'Size already exists. Please add another size.',
-                ]);
-            }
-            $seenSizes[] = $normalizedSize;
+            $variantKey = strtolower($size) . '|' . strtolower($color);
 
-            if ($productId && ProductsAttribute::where('product_id', $productId)->where('size', $size)->exists()) {
+            if (isset($seen[$variantKey])) {
                 throw ValidationException::withMessages([
-                    'size' => 'Size already exists. Please add another size.',
+                    'variants' => 'Duplicate variant combinations are not allowed.',
                 ]);
             }
+
+            $seen[$variantKey] = true;
+            $normalized[] = [
+                'size' => $size,
+                'color' => $color,
+                'stock' => $stock,
+            ];
         }
+
+        return array_values($normalized);
     }
 
-    private function normalizeColorLabels($productColorInput): array
+    private function extractVariantColors(array $variants): array
     {
-        if (!is_array($productColorInput)) {
-            $productColorInput = preg_split('/[~,]/', (string) $productColorInput, -1, PREG_SPLIT_NO_EMPTY);
-        }
+        return array_values(array_unique(array_map(
+            fn (array $variant) => $variant['color'],
+            $variants
+        )));
+    }
 
-        return array_values(array_unique(array_filter(array_map(
-            fn ($value) => trim((string) $value),
-            (array) $productColorInput
-        ))));
+    private function syncProductVariants(Product $product, array $variants): void
+    {
+        $product->productVariants()->delete();
+
+        foreach ($variants as $variant) {
+            $product->productVariants()->create([
+                'size' => $variant['size'],
+                'color' => $variant['color'],
+                'stock' => $variant['stock'],
+            ]);
+        }
     }
 
     private function normalizeColorStockInput($colorStockInput, array $productColors): array
@@ -392,14 +355,28 @@ class ProductService
         ));
     }
 
-    private function syncProductStock(Product $product, array $colorStock = []): void
+    private function sumVariantStock(array $variants): int
     {
-        $attributeQuery = ProductsAttribute::where('product_id', $product->id);
-        $hasAttributes = (clone $attributeQuery)->exists();
+        return array_sum(array_map(
+            fn (array $variant) => max(0, (int) ($variant['stock'] ?? 0)),
+            $variants
+        ));
+    }
 
-        $totalStock = $hasAttributes
-            ? (int) (clone $attributeQuery)->where('status', 1)->sum('stock')
-            : $this->sumColorStock($colorStock);
+    private function syncProductStock(Product $product, array $colorStock = [], ?array $variants = null): void
+    {
+        if ($variants !== null) {
+            $totalStock = $this->sumVariantStock($variants);
+        } elseif ($product->productVariants()->exists()) {
+            $totalStock = (int) $product->productVariants()->sum('stock');
+        } else {
+            $attributeQuery = ProductsAttribute::where('product_id', $product->id);
+            $hasAttributes = (clone $attributeQuery)->exists();
+
+            $totalStock = $hasAttributes
+                ? (int) (clone $attributeQuery)->where('status', 1)->sum('stock')
+                : $this->sumColorStock($colorStock);
+        }
 
         $updates = [
             'stock' => $totalStock,

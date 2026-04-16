@@ -521,8 +521,8 @@
 
                         @if(!$similar->is_available)
                             <small class="text-muted d-block">Currently out of stock</small>
-                        @elseif($similar->has_selectable_sizes && !$similar->can_quick_add)
-                            <small class="text-muted d-block">Choose size on the detail page</small>
+                        @elseif(!$similar->can_quick_add)
+                            <small class="text-muted d-block">Choose options on the detail page</small>
                         @elseif($similar->has_selectable_sizes && $similar->can_quick_add)
                             <small class="text-muted d-block">Quick add size: {{ $similar->quick_add_size }}</small>
                         @endif
@@ -538,7 +538,8 @@
                             <a href="javascript:void(0);"
                                class="btn btn-sm text-dark p-0 addToCartBtn detail-similar-cart"
                                data-id="{{ $similar->id }}"
-                               data-size="{{ $similar->quick_add_size }}">
+                               data-size="{{ $similar->quick_add_size }}"
+                               data-color="{{ $similar->quick_add_color }}">
                                 <i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart
                             </a>
                         @elseif($similar->is_available)

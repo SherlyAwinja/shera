@@ -117,7 +117,7 @@
         [
             'title' => 'Customers',
             'group_icon' => 'bi-people-fill',
-            'pages' => ['users', 'reviews', 'wallets'],
+            'pages' => ['users', 'reviews', 'wallets', 'orders'],
             'items' => [
                 [
                     'label' => 'Users',
@@ -132,6 +132,13 @@
                     'icon' => 'bi-chat-square-heart',
                     'url' => url('admin/reviews'),
                     'pages' => ['reviews'],
+                ],
+                [
+                    'label' => 'Orders',
+                    'hint' => 'Placed, paid, fulfilled',
+                    'icon' => 'bi-receipt-cutoff',
+                    'url' => url('admin/orders'),
+                    'pages' => ['orders'],
                 ],
                 [
                     'label' => 'Wallets',

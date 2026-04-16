@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Front\RequestWalletTopUpRequest;
 use App\Http\Requests\Front\UpdatePasswordRequest;
 use App\Http\Requests\Front\UpdateProfileRequest;
 use App\Http\Requests\Front\UpsertUserAddressRequest;
@@ -31,6 +32,7 @@ class AccountController extends Controller
 
     public function edit(): View
     {
+        $user = auth()->user();
         $countries = Country::query()
             ->where('is_active', true)
             ->orderByRaw("CASE WHEN LOWER(name) = 'kenya' THEN 0 ELSE 1 END")
@@ -47,14 +49,23 @@ class AccountController extends Controller
         }
 
         return view('front.account.edit', [
-            'user' => auth()->user(),
+            'user' => $user,
             'countries' => $countries,
-            'savedAddresses' => auth()->user()->addresses()
+            'savedAddresses' => $user->addresses()
                 ->orderByDesc('is_default')
                 ->latest('updated_at')
                 ->get(),
-            'walletBalance' => $this->walletService->currentBalanceForUser((int) auth()->id()),
-            'walletEntries' => $this->walletService->recentEntriesForUser((int) auth()->id()),
+            ...$this->walletViewData($user),
+        ]);
+    }
+
+    public function wallet(): View
+    {
+        $user = auth()->user();
+
+        return view('front.account.wallet', [
+            'user' => $user,
+            ...$this->walletViewData($user),
         ]);
     }
 
@@ -116,6 +127,22 @@ class AccountController extends Controller
         return redirect()
             ->route('user.account')
             ->with('password_success', 'Your password has been updated.');
+    }
+
+    public function requestWalletTopUp(RequestWalletTopUpRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $amount = round((float) $validated['amount'], 2);
+
+        $this->walletService->requestTopUpForUser(
+            (int) $request->user()->id,
+            $amount,
+            $validated['note'] ?? null
+        );
+
+        return redirect()
+            ->to(route('user.account.wallet', [], false))
+            ->with('wallet_top_up_success', 'Your wallet top-up request for ' . $this->walletService->formatAmount($amount) . ' has been submitted. An admin can review and activate the credit.');
     }
 
     public function storeAddress(UpsertUserAddressRequest $request): RedirectResponse
@@ -288,6 +315,14 @@ class AccountController extends Controller
                 'name' => $subCounty->name,
             ])->values(),
         ]);
+    }
+
+    private function walletViewData(User $user): array
+    {
+        return [
+            'walletBalance' => $this->walletService->currentBalanceForUser((int) $user->id),
+            'walletEntries' => $this->walletService->recentEntriesForUser((int) $user->id, 20),
+        ];
     }
 
     protected function sendPendingEmailVerification(User $user): void

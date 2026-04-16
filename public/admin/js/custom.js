@@ -1,130 +1,233 @@
 $(document).ready(function() {
+    const variantManager = $('#product-variant-manager');
+    const variantBody = $('#product-variants-body');
+    const variantTemplate = $('#product-variant-row-template').html();
+    const variantSummaryPill = $('#variant-summary-pill');
+    const variantStockNote = $('#variant-total-stock-note');
 
-    // Add/Remove Attribute Script
-    const maxField   = 10;
-    const wrapper    = $('.field_wrapper');
-    const removeTmpl = '<a href="javascript:void(0);" class="btn btn-sm btn-danger remove_button" title="Remove row"><i class="fas fa-minus"></i></a>';
-    const colorStockFields = $('#color-stock-fields');
-
-    function colorStockInputId(color) {
-        return 'color_stock_' + String(color || '')
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '_')
-            .replace(/^_+|_+$/g, '');
+    function normalizeVariantText(value) {
+        return $.trim(String(value || ''));
     }
 
-    function getSelectedProductColors() {
-        const values = $('#product_color').val();
-
-        return Array.isArray(values) ? values : [];
+    function variantKey(size, color) {
+        return normalizeVariantText(size).toLowerCase() + '|' + normalizeVariantText(color).toLowerCase();
     }
 
-    function collectCurrentColorStockValues() {
-        const values = {};
+    function buildVariantRow(index, variant) {
+        const row = $(String(variantTemplate || '').replace(/__INDEX__/g, index));
 
-        colorStockFields.find('input[name^="color_stock["]').each(function() {
-            const input = $(this);
-            const color = input.closest('.color-stock-row').data('color');
+        row.find('input[data-field="size"]').val(normalizeVariantText(variant.size));
+        row.find('input[data-field="color"]').val(normalizeVariantText(variant.color));
+        row.find('input[data-field="stock"]').val(
+            Number.isNaN(parseInt(variant.stock, 10)) ? 0 : Math.max(0, parseInt(variant.stock, 10))
+        );
 
-            if (typeof color !== 'undefined') {
-                values[String(color)] = input.val();
+        return row;
+    }
+
+    function ensureVariantPlaceholderRow() {
+        if (!variantBody.length || variantBody.find('.product-variant-row').length) {
+            return;
+        }
+
+        variantBody.append(buildVariantRow(0, {
+            size: '',
+            color: '',
+            stock: 0
+        }));
+    }
+
+    function reindexVariantRows() {
+        variantBody.find('.product-variant-row').each(function(index) {
+            const row = $(this);
+            row.attr('data-row-index', index);
+
+            row.find('[data-field]').each(function() {
+                const input = $(this);
+                const field = input.data('field');
+                input.attr('name', 'variants[' + index + '][' + field + ']');
+            });
+        });
+    }
+
+    function updateVariantSummary() {
+        if (!variantBody.length) {
+            return;
+        }
+
+        let variantCount = 0;
+        let totalStock = 0;
+
+        variantBody.find('.product-variant-row').each(function() {
+            const row = $(this);
+            const size = normalizeVariantText(row.find('[data-field="size"]').val());
+            const color = normalizeVariantText(row.find('[data-field="color"]').val());
+            const stock = Math.max(0, parseInt(row.find('[data-field="stock"]').val(), 10) || 0);
+
+            if (size === '' || color === '') {
+                return;
             }
+
+            variantCount += 1;
+            totalStock += stock;
         });
 
-        return values;
+        if (variantSummaryPill.length) {
+            variantSummaryPill.text(variantCount + ' variant' + (variantCount === 1 ? '' : 's') + ' | ' + totalStock + ' in stock');
+        }
+
+        if (variantStockNote.length) {
+            variantStockNote.text(
+                variantCount > 0
+                    ? 'Total stock across all saved combinations: ' + totalStock + ' units.'
+                    : 'Add at least one size and color combination to track stock.'
+            );
+        }
     }
 
-    function renderColorStockFields(stockValues) {
-        if (!colorStockFields.length) {
+    function renderVariantRows(rows) {
+        if (!variantBody.length) {
             return;
         }
 
-        const selectedColors = getSelectedProductColors();
-        const emptyText = colorStockFields.data('empty-text') || 'Select product colors to set stock quantities.';
+        variantBody.empty();
 
-        colorStockFields.empty();
-
-        if (!selectedColors.length) {
-            colorStockFields.append(
-                $('<p>', {
-                    class: 'text-muted mb-0',
-                    id: 'color-stock-empty-state',
-                    text: emptyText
-                })
-            );
-
+        if (!Array.isArray(rows) || !rows.length) {
+            ensureVariantPlaceholderRow();
+            reindexVariantRows();
+            updateVariantSummary();
             return;
         }
 
-        $.each(selectedColors, function(_, color) {
-            const normalizedColor = String(color);
-            const inputId = colorStockInputId(normalizedColor);
-            const currentValue = typeof stockValues[normalizedColor] !== 'undefined'
-                ? stockValues[normalizedColor]
-                : 0;
-            const row = $('<div>', {
-                class: 'd-flex align-items-center gap-2 mb-2 color-stock-row',
-                'data-color': normalizedColor
+        $.each(rows, function(index, variant) {
+            variantBody.append(buildVariantRow(index, variant || {}));
+        });
+
+        ensureVariantPlaceholderRow();
+        reindexVariantRows();
+        updateVariantSummary();
+    }
+
+    if (variantManager.length && variantBody.length) {
+        let initialVariants = variantManager.data('initial-variants') || [];
+
+        if (typeof initialVariants === 'string') {
+            try {
+                initialVariants = JSON.parse(initialVariants);
+            } catch (error) {
+                initialVariants = [];
+            }
+        }
+
+        renderVariantRows(initialVariants);
+
+        $('#add-variant-row').on('click', function() {
+            if (variantBody.find('.product-variant-row').length === 1) {
+                const onlyRow = variantBody.find('.product-variant-row').first();
+                const onlySize = normalizeVariantText(onlyRow.find('[data-field="size"]').val());
+                const onlyColor = normalizeVariantText(onlyRow.find('[data-field="color"]').val());
+                const onlyStock = parseInt(onlyRow.find('[data-field="stock"]').val(), 10) || 0;
+
+                if (onlySize === '' && onlyColor === '' && onlyStock === 0) {
+                    onlyRow.find('[data-field="stock"]').val(0);
+                    onlyRow.find('[data-field="size"]').trigger('focus');
+                    return;
+                }
+            }
+
+            variantBody.append(buildVariantRow(variantBody.find('.product-variant-row').length, {
+                size: '',
+                color: '',
+                stock: 0
+            }));
+            reindexVariantRows();
+            updateVariantSummary();
+        });
+
+        $('#generate-variant-combinations').on('click', function() {
+            const sizes = (($('#variant-size-pool').val()) || [])
+                .map(normalizeVariantText)
+                .filter(Boolean);
+            const colors = (($('#variant-color-pool').val()) || [])
+                .map(normalizeVariantText)
+                .filter(Boolean);
+
+            if (!sizes.length || !colors.length) {
+                window.alert('Select at least one size and one color to generate combinations.');
+                return;
+            }
+
+            const existingKeys = {};
+
+            variantBody.find('.product-variant-row').each(function() {
+                const row = $(this);
+                const size = normalizeVariantText(row.find('[data-field="size"]').val());
+                const color = normalizeVariantText(row.find('[data-field="color"]').val());
+
+                if (size !== '' && color !== '') {
+                    existingKeys[variantKey(size, color)] = true;
+                }
             });
 
-            row.append(
-                $('<label>', {
-                    class: 'mb-0 flex-grow-1 font-weight-medium',
-                    for: inputId,
-                    text: normalizedColor
-                })
-            );
+            if (variantBody.find('.product-variant-row').length === 1) {
+                const blankRow = variantBody.find('.product-variant-row').first();
+                const blankSize = normalizeVariantText(blankRow.find('[data-field="size"]').val());
+                const blankColor = normalizeVariantText(blankRow.find('[data-field="color"]').val());
+                const blankStock = parseInt(blankRow.find('[data-field="stock"]').val(), 10) || 0;
 
-            row.append(
-                $('<input>', {
-                    type: 'number',
-                    min: 0,
-                    step: 1,
-                    class: 'form-control',
-                    id: inputId,
-                    name: 'color_stock[' + normalizedColor + ']',
-                    value: currentValue,
-                    style: 'max-width: 170px;'
-                })
-            );
-
-            colorStockFields.append(row);
-        });
-    }
-
-    if (colorStockFields.length) {
-        let initialColorStocks = colorStockFields.data('initial-stocks') || {};
-
-        if (typeof initialColorStocks === 'string') {
-            try {
-                initialColorStocks = JSON.parse(initialColorStocks);
-            } catch (error) {
-                initialColorStocks = {};
+                if (blankSize === '' && blankColor === '' && blankStock === 0) {
+                    blankRow.remove();
+                }
             }
-        }
 
-        renderColorStockFields(initialColorStocks);
+            let generatedRows = 0;
 
-        $('#product_color').on('change', function() {
-            renderColorStockFields(collectCurrentColorStockValues());
+            $.each(sizes, function(_, size) {
+                $.each(colors, function(__, color) {
+                    const key = variantKey(size, color);
+
+                    if (existingKeys[key]) {
+                        return;
+                    }
+
+                    existingKeys[key] = true;
+                    generatedRows += 1;
+                    variantBody.append(buildVariantRow(variantBody.find('.product-variant-row').length, {
+                        size: size,
+                        color: color,
+                        stock: 0
+                    }));
+                });
+            });
+
+            ensureVariantPlaceholderRow();
+            reindexVariantRows();
+            updateVariantSummary();
+
+            if (generatedRows === 0) {
+                window.alert('All selected size and color combinations already exist in the table.');
+            }
+        });
+
+        variantBody.on('click', '.remove-variant-row', function() {
+            $(this).closest('.product-variant-row').remove();
+            ensureVariantPlaceholderRow();
+            reindexVariantRows();
+            updateVariantSummary();
+        });
+
+        variantBody.on('input change', 'input[data-field="stock"]', function() {
+            const input = $(this);
+            const value = Math.max(0, parseInt(input.val(), 10) || 0);
+            input.val(value);
+            updateVariantSummary();
+        });
+
+        variantBody.on('blur change', 'input[data-field="size"], input[data-field="color"]', function() {
+            $(this).val(normalizeVariantText($(this).val()));
+            updateVariantSummary();
         });
     }
-
-    // Add new attribute row
-    $(document).on('click', '.add_button', function(e) {
-        e.preventDefault();
-        if (wrapper.find('.attribute-row').length >= maxField) return;
-        const row = $(this).closest('.attribute-row').clone();
-        row.find('input').val('');  // clear values
-        // Replace the + button in the cloned row with a - button
-        row.find('.add_button').replaceWith(removeTmpl);
-        wrapper.append(row);
-    });
-
-    wrapper.on('click', '.remove_button', function(e) {
-        e.preventDefault();
-        $(this).closest('.attribute-row').remove();
-    });
 
     // Check Admin Password is correct or not
     $('#current_password').keyup(function() {
@@ -558,11 +661,6 @@ $(document).ready(function() {
         width: '100%'
     });
 
-    $('#product_color').select2({
-        placeholder: "Select colors",
-        width: '100%'
-    });
-
     // Select All
     $('#selectAll').on('click', function() {
         let allValues = $('#other_categories option').map(function() {
@@ -576,19 +674,6 @@ $(document).ready(function() {
         $('#other_categories').val(null).trigger('change');
     });
 
-    // Select All Colors
-    $('#colorSelectAll').on('click', function() {
-        let allColorValues = $('#product_color option').map(function() {
-            return $(this).val();
-        }).get();
-        $('#product_color').val(allColorValues).trigger('change');
-    });
-
-    // Deselect All Colors
-    $('#colorDeselectAll').on('click', function() {
-        $('#product_color').val(null).trigger('change');
-    });
-
     // Initialize Select2 if available
     if ($.fn.select2) {
         $('#categoriesSelect').select2({ width: '100%' });
@@ -596,7 +681,16 @@ $(document).ready(function() {
         $('#usersSelect').select2({ width: '100%' });
         $('#walletUserSelect').select2({ width: '100%' });
         $('#walletFilterUser').select2({ width: '100%' });
-        $('.select2-tags').select2({ width: '100%', tags: true, tokenSeparators: [','] });
+        $('.select2-tags').each(function() {
+            const select = $(this);
+
+            select.select2({
+                width: '100%',
+                tags: true,
+                tokenSeparators: [','],
+                placeholder: select.data('placeholder') || 'Select values'
+            });
+        });
     }
 
     function formatWalletCurrency(amount) {
@@ -768,6 +862,25 @@ $(document).ready(function() {
             renderWalletBalancePreview();
         });
     }
+});
 
+document.addEventListener('DOMContentLoaded', function () {
+    const statusSelect = document.getElementById('order_status_id');
+    const shippedFields = document.querySelectorAll('.shipped-field');
 
+    function toggleShippedFields() {
+        const selectedText = statusSelect.options[statusSelect.selectedIndex].text.toLowerCase();
+
+        const show = (selectedText === 'shipped' || selectedText.includes('ship'));
+
+        shippedFields.forEach(function (el) {
+            el.style.display = show ? 'block' : 'none';
+        });
+    }
+
+    // Initial toggle (for edit page load)
+    toggleShippedFields();
+
+    // Listen for changes
+    statusSelect.addEventListener('change', toggleShippedFields);
 });

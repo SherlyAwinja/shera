@@ -25,6 +25,7 @@ class WalletService
         }
 
         $selectedUserId = !empty($filters['user_id']) ? (int) $filters['user_id'] : null;
+        $pendingRequestsOnly = filter_var($filters['pending_requests'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         $walletsQuery = Wallet::query()
             ->select('wallets.*')
@@ -35,6 +36,10 @@ class WalletService
             $walletsQuery->where('wallets.user_id', $selectedUserId);
         }
 
+        if ($pendingRequestsOnly) {
+            $walletsQuery->pendingTopUpRequests();
+        }
+
         $wallets = $walletsQuery
             ->orderBy('users.name')
             ->orderBy('wallets.created_at')
@@ -42,6 +47,11 @@ class WalletService
             ->get();
 
         $wallets = $this->attachLedgerBalances($wallets);
+        $pendingRequestsQuery = Wallet::query()->pendingTopUpRequests();
+
+        if ($selectedUserId) {
+            $pendingRequestsQuery->where('user_id', $selectedUserId);
+        }
 
         return [
             'status' => 'success',
@@ -50,6 +60,8 @@ class WalletService
             'users' => $this->walletUsers(),
             'selectedUserId' => $selectedUserId,
             'selectedUserBalance' => $selectedUserId ? $this->currentBalance($selectedUserId) : null,
+            'pendingRequestsOnly' => $pendingRequestsOnly,
+            'pendingRequestCount' => $pendingRequestsQuery->count(),
         ];
     }
 
@@ -77,6 +89,7 @@ class WalletService
         }
 
         $wallet->fill($payload);
+        $wallet->description = $this->synchronizeTopUpRequestDescription($wallet->description, (bool) $wallet->status);
         $wallet->save();
 
         return $wallet;
@@ -126,6 +139,7 @@ class WalletService
     {
         $wallet = Wallet::findOrFail($walletId);
         $wallet->status = !$wallet->status;
+        $wallet->description = $this->synchronizeTopUpRequestDescription($wallet->description, (bool) $wallet->status);
         $wallet->save();
 
         $ledger = $this->ledgerBreakdownForUser((int) $wallet->user_id);
@@ -215,6 +229,18 @@ class WalletService
     private function formatCurrency(float $amount): string
     {
         return 'KES ' . number_format($amount, 2);
+    }
+
+    private function synchronizeTopUpRequestDescription(?string $description, bool $isActive): ?string
+    {
+        if (!filled($description) || !str_starts_with((string) $description, Wallet::TOP_UP_REQUEST_PREFIX)) {
+            return $description;
+        }
+
+        $from = $isActive ? 'Pending admin approval.' : 'Approved and active.';
+        $to = $isActive ? 'Approved and active.' : 'Pending admin approval.';
+
+        return str_replace($from, $to, (string) $description);
     }
 
     private function resolveModulePermissions(): array

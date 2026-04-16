@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Scout\Searchable;
 
 class Product extends Model
@@ -39,6 +40,11 @@ class Product extends Model
         return $this->hasMany('App\Models\ProductsAttribute');
     }
 
+    public function productVariants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('color')->orderBy('size');
+    }
+
     public function filterValues()
     {
         return $this->belongsToMany(FilterValue::class, 'product_filter_values', 'product_id', 'filter_value_id');
@@ -71,29 +77,49 @@ class Product extends Model
         return $this->hasMany(ProductsCategory::class, 'product_id');
     }
 
-    public static function getAttributePrice($product_id, $size)
+    public static function getAttributePrice($product_id, $size, ?string $color = null)
     {
+        $normalizedSize = trim((string) $size);
+        $normalizedColor = trim((string) $color);
+        $normalizedColor = $normalizedColor !== '' ? $normalizedColor : null;
+
         // Get attribute
         $attribute = ProductsAttribute::where([
             'product_id' => $product_id,
-            'size' => $size,
+            'size' => $normalizedSize,
             'status' => 1
         ])->first();
 
-        if (!$attribute) {
-            return ['status' => false];
-        }
-
-        $basePrice = (float) $attribute->price;
-
         // Get product
-        $product = self::select('id', 'category_id', 'brand_id', 'product_discount')
+        $product = self::with(['productVariants' => function ($query) use ($normalizedSize) {
+                $query->where('size', $normalizedSize);
+            }])
+            ->select('id', 'category_id', 'brand_id', 'product_discount', 'product_price')
             ->where('id', $product_id)
             ->first();
 
         if (!$product) {
             return ['status' => false];
         }
+
+        $sizeVariants = $product->productVariants;
+        $matchingVariants = $normalizedColor !== null
+            ? $sizeVariants->filter(function (ProductVariant $variant) use ($normalizedColor) {
+                return strtolower(trim((string) $variant->color)) === strtolower($normalizedColor);
+            })->values()
+            : $sizeVariants;
+
+        if ($normalizedColor !== null && $sizeVariants->isNotEmpty() && $matchingVariants->isEmpty()) {
+            return ['status' => false];
+        }
+
+        if (!$attribute && $matchingVariants->isEmpty()) {
+            return ['status' => false];
+        }
+
+        $basePrice = $attribute
+            ? (float) $attribute->price
+            : (float) ($product->product_price ?? 0);
 
         // Discounts
         $productDisc = (float) ($product->product_discount ?? 0);
@@ -127,6 +153,24 @@ class Product extends Model
             : round($basePrice);
 
         $discountAmt = $basePrice - $final;
+        $hasVariantSelection = $matchingVariants->isNotEmpty();
+
+        if ($hasVariantSelection) {
+            $stock = (int) $matchingVariants->sum('stock');
+            $inStock = $stock > 0;
+            $descriptor = $normalizedColor !== null
+                ? sprintf('size %s in %s', $normalizedSize, $normalizedColor)
+                : sprintf('size %s', $normalizedSize);
+            $stockMessage = $inStock
+                ? sprintf('%d unit%s available in %s.', $stock, $stock === 1 ? '' : 's', $descriptor)
+                : sprintf('%s is currently out of stock.', ucfirst($descriptor));
+        } else {
+            $stock = (int) ($attribute->stock ?? 0);
+            $inStock = $stock > 0;
+            $stockMessage = $inStock
+                ? sprintf('%d unit%s available in size %s.', $stock, $stock === 1 ? '' : 's', $attribute->size)
+                : sprintf('Size %s is currently out of stock.', $attribute->size);
+        }
 
         return [
             'status' => true,
@@ -134,12 +178,10 @@ class Product extends Model
             'final_price' => (int) $final,
             'discount' => (int) $discountAmt,
             'percent' => (int) $applied,
-            'stock' => (int) $attribute->stock,
-            'in_stock' => (int) $attribute->stock > 0,
-            'stock_label' => (int) $attribute->stock > 0 ? 'In stock' : 'Out of stock',
-            'stock_message' => (int) $attribute->stock > 0
-                ? sprintf('%d unit%s available in size %s.', (int) $attribute->stock, (int) $attribute->stock === 1 ? '' : 's', $attribute->size)
-                : sprintf('Size %s is currently out of stock.', $attribute->size),
+            'stock' => $stock,
+            'in_stock' => $inStock,
+            'stock_label' => $inStock ? 'In stock' : 'Out of stock',
+            'stock_message' => $stockMessage,
         ];
     }
 

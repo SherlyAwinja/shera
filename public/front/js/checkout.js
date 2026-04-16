@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const summaryUrl = root.dataset.summaryUrl;
+    const walletApplyUrl = root.dataset.walletApplyUrl;
+    const walletRemoveUrl = root.dataset.walletRemoveUrl;
     const summaryShell = root.querySelector('[data-summary-shell]');
     const addressList = root.querySelector('[data-address-list]');
     const formShell = root.querySelector('[data-address-form-shell]');
@@ -53,6 +55,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let pendingDelete = null;
     let pendingCounty = form?.dataset.selectedCounty || countyText?.value || '';
     let pendingSubCounty = form?.dataset.selectedSubCounty || subCountyText?.value || '';
+    let selectedPaymentMethod = summaryShell?.querySelector('[data-payment-method-input]:checked')?.value || '';
+    let walletFeedback = {
+        tone: '',
+        message: '',
+    };
 
     const showModal = () => {
         if (deleteModalElement && window.jQuery) {
@@ -219,9 +226,57 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
+    const syncPaymentMethodSelection = () => {
+        if (!summaryShell) {
+            selectedPaymentMethod = '';
+            return;
+        }
+
+        const inputs = Array.from(summaryShell.querySelectorAll('[data-payment-method-input]'));
+
+        if (!inputs.length) {
+            selectedPaymentMethod = '';
+            return;
+        }
+
+        let activeInput = inputs.find((input) => input.value === selectedPaymentMethod && !input.disabled)
+            || inputs.find((input) => input.checked && !input.disabled)
+            || inputs.find((input) => !input.disabled)
+            || null;
+
+        inputs.forEach((input) => {
+            input.checked = activeInput ? input.value === activeInput.value : false;
+        });
+
+        selectedPaymentMethod = activeInput ? activeInput.value : '';
+    };
+
+    const renderWalletFeedback = () => {
+        const walletFeedbackShell = summaryShell?.querySelector('[data-wallet-feedback]');
+
+        if (!walletFeedbackShell) {
+            return;
+        }
+
+        if (!walletFeedback.message) {
+            walletFeedbackShell.innerHTML = '';
+            return;
+        }
+
+        const toneClass = walletFeedback.tone === 'success'
+            ? 'alert-success'
+            : walletFeedback.tone === 'info'
+                ? 'alert-info'
+                : 'alert-danger';
+
+        walletFeedbackShell.innerHTML = `<div class="alert ${toneClass} mb-0">${walletFeedback.message}</div>`;
+    };
+
     const renderSummary = (payload) => {
         if (summaryShell && Object.prototype.hasOwnProperty.call(payload || {}, 'summary_html')) {
             summaryShell.innerHTML = payload.summary_html;
+            syncPaymentMethodSelection();
+            renderWalletFeedback();
         }
     };
 
@@ -291,6 +346,50 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             return json;
+        } finally {
+            setSummaryLoading(false);
+        }
+    };
+
+    const activeAddressId = () => activeId
+        || summaryShell?.querySelector('input[name="address_id"]')?.value
+        || '';
+
+    const submitWalletRequest = async (url, payload = {}) => {
+        if (!url) {
+            return;
+        }
+
+        setSummaryLoading(true);
+
+        try {
+            const response = await postEncoded(url, payload);
+            const json = await parseJson(response);
+
+            if (Object.prototype.hasOwnProperty.call(json || {}, 'summary_html')) {
+                renderSummary(json);
+            }
+
+            if (Object.prototype.hasOwnProperty.call(json || {}, 'selected_address_id')) {
+                setSelected(json.selected_address_id || '');
+            }
+
+            if (!response.ok || json.status === false) {
+                walletFeedback = {
+                    tone: 'error',
+                    message: json.message || 'Unable to update wallet credit right now.',
+                };
+                renderWalletFeedback();
+                showToast('error', walletFeedback.message);
+                return;
+            }
+
+            walletFeedback = {
+                tone: 'success',
+                message: json.message || 'Wallet credit updated.',
+            };
+            renderWalletFeedback();
+            showToast('success', walletFeedback.message);
         } finally {
             setSummaryLoading(false);
         }
@@ -632,6 +731,94 @@ document.addEventListener('DOMContentLoaded', function () {
         setCreateMode();
     });
 
+    summaryShell?.addEventListener('change', function (event) {
+        const paymentInput = event.target.closest('[data-payment-method-input]');
+
+        if (!paymentInput || paymentInput.disabled) {
+            return;
+        }
+
+        selectedPaymentMethod = paymentInput.value;
+        syncPaymentMethodSelection();
+    });
+
+    summaryShell?.addEventListener('click', async function (event) {
+        const applyWalletButton = event.target.closest('[data-checkout-wallet-apply]');
+        const useFullWalletButton = event.target.closest('[data-checkout-wallet-full]');
+        const removeWalletButton = event.target.closest('[data-checkout-wallet-remove]');
+
+        if (applyWalletButton) {
+            event.preventDefault();
+
+            const walletForm = applyWalletButton.closest('[data-checkout-wallet-form]');
+            const amountInput = walletForm?.querySelector('[data-wallet-amount-input]');
+            const amount = Number.parseFloat(amountInput?.value || '');
+
+            if (Number.isNaN(amount) || amount <= 0) {
+                walletFeedback = {
+                    tone: 'error',
+                    message: 'Enter a valid wallet amount.',
+                };
+                renderWalletFeedback();
+                return;
+            }
+
+            await submitWalletRequest(walletApplyUrl, {
+                wallet_amount: amount,
+                address_id: activeAddressId(),
+            });
+
+            return;
+        }
+
+        if (useFullWalletButton) {
+            event.preventDefault();
+
+            await submitWalletRequest(walletApplyUrl, {
+                wallet_amount: useFullWalletButton.dataset.amount || '',
+                address_id: activeAddressId(),
+            });
+
+            return;
+        }
+
+        if (!removeWalletButton) {
+            return;
+        }
+
+        event.preventDefault();
+
+        await submitWalletRequest(walletRemoveUrl, {
+            address_id: activeAddressId(),
+        });
+    });
+
+    summaryShell?.addEventListener('keydown', async function (event) {
+        const amountInput = event.target.closest('[data-wallet-amount-input]');
+
+        if (!amountInput || event.key !== 'Enter') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const amount = Number.parseFloat(amountInput.value || '');
+
+        if (Number.isNaN(amount) || amount <= 0) {
+            walletFeedback = {
+                tone: 'error',
+                message: 'Enter a valid wallet amount.',
+            };
+            renderWalletFeedback();
+            return;
+        }
+
+        await submitWalletRequest(walletApplyUrl, {
+            wallet_amount: amount,
+            address_id: activeAddressId(),
+        });
+    });
+
     addressList?.addEventListener('click', async function (event) {
         const selectButton = event.target.closest('[data-address-select]');
         const editButton = event.target.closest('[data-address-edit]');
@@ -819,6 +1006,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     syncLocationMode();
+    syncPaymentMethodSelection();
 
     const syncCartSummary = () => refreshSummary(activeId ? { address_id: activeId } : {}).catch(() => null);
 

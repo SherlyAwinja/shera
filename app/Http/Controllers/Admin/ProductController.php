@@ -87,7 +87,7 @@ class ProductController extends Controller
     public function edit(string $id)
     {
         $title = 'Edit Product';
-        $product = Product::with('product_images', 'attributes')->findOrFail($id);
+        $product = Product::with('product_images', 'attributes', 'productVariants')->findOrFail($id);
         $getCategories = Category::getCategories('Admin');
         // Get All Active Brands
         $brands = Brand::where('status', 1)->get()->toArray();

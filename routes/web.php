@@ -15,7 +15,8 @@ use App\Http\Controllers\Admin\FilterValueController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ReviewController;
-use App\Http\Controllers\Admin\WalletController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\WalletController as AdminWalletController;
 
 // Front Controllers
 use App\Http\Controllers\Front\IndexController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Front\AuthController;
 use App\Http\Controllers\Front\AccountController;
 use App\Http\Controllers\Front\ReviewController as ReviewFrontController;
 use App\Http\Controllers\Front\CheckoutController;
+use App\Http\Controllers\Front\OrderController as OrderFrontController;
 
 
 // Models
@@ -187,9 +189,13 @@ Route::prefix('admin')->group(function () {
         Route::post('update-review-status', [ReviewController::class, 'updateReviewStatus']);
 
         // Wallets
-        Route::resource('wallets', WalletController::class)->except(['show']);
-        Route::get('wallets/live-balance', [WalletController::class, 'liveBalance'])->name('wallets.live-balance');
-        Route::post('update-wallet-status', [WalletController::class, 'updateWalletStatus'])->name('wallets.update-status');
+        Route::resource('wallets', AdminWalletController::class)->except(['show']);
+        Route::get('wallets/live-balance', [AdminWalletController::class, 'liveBalance'])->name('wallets.live-balance');
+        Route::post('update-wallet-status', [AdminWalletController::class, 'updateWalletStatus'])->name('wallets.update-status');
+
+        // Orders
+        Route::resource('orders', OrderController::class);
+        Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 
 
         // Admin Logout Route
@@ -275,6 +281,8 @@ Route::group([], function () {
             Route::get('account/location/counties', [AccountController::class, 'counties'])->name('account.locations.counties');
             Route::get('account/location/sub-counties', [AccountController::class, 'subCounties'])->name('account.locations.sub-counties');
             Route::put('account', [AccountController::class, 'update'])->name('account.update');
+            Route::get('account/wallet', [AccountController::class, 'wallet'])->name('account.wallet');
+            Route::post('account/wallet/top-up', [AccountController::class, 'requestWalletTopUp'])->name('account.wallet.top-up');
             Route::post('account/addresses', [AccountController::class, 'storeAddress'])->name('account.addresses.store');
             Route::put('account/addresses/{address}', [AccountController::class, 'updateAddress'])->name('account.addresses.update');
             Route::delete('account/addresses/{address}', [AccountController::class, 'destroyAddress'])->name('account.addresses.destroy');
@@ -284,6 +292,8 @@ Route::group([], function () {
             // Show checkout page
             Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
             Route::post('/checkout/summary', [CheckoutController::class, 'summary'])->name('checkout.summary');
+            Route::post('/checkout/wallet/apply', [CheckoutController::class, 'applyWallet'])->name('checkout.wallet.apply');
+            Route::post('/checkout/wallet/remove', [CheckoutController::class, 'removeWallet'])->name('checkout.wallet.remove');
             Route::post('/checkout/addresses/{address}/select', [CheckoutController::class, 'selectAddress'])->name('checkout.addresses.select');
             // Save new delivery address (Ajax or normal POST)
             Route::post('/checkout/add-address', [CheckoutController::class, 'addAddress'])->name('checkout.addresses');
@@ -291,6 +301,13 @@ Route::group([], function () {
             Route::delete('/checkout/addresses/{address}', [CheckoutController::class, 'destroyAddress'])->name('checkout.addresses.destroy');
             // place order (form submit)
             Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.placeOrder');
+            Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
+
+            // User Order Listing Route
+            Route::get('orders', [OrderFrontController::class, 'index'])->name('orders.index');
+
+            // User Order Detail Route
+            Route::get('orders/{order}', [OrderFrontController::class, 'show'])->name('orders.show');
 
 
             Route::post('logout', [AuthController::class, 'logout'])->name('logout');

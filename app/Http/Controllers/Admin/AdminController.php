@@ -46,7 +46,7 @@ class AdminController extends Controller
         Session::put('page', 'dashboard');
         $admin = Auth::guard('admin')->user();
         $isAdmin = strtolower((string) $admin->role) === 'admin';
-        $dashboardModules = ['categories', 'products', 'brands', 'users', 'reviews', 'wallets', 'filters', 'filters_values', 'banners'];
+        $dashboardModules = ['categories', 'products', 'brands', 'users', 'reviews', 'wallets', 'orders', 'filters', 'filters_values', 'banners'];
         $roleModules = $isAdmin
             ? collect()
             : AdminsRole::where('subadmin_id', $admin->id)
@@ -76,6 +76,7 @@ class AdminController extends Controller
             'users' => $canAccess(['users']),
             'reviews' => $canAccess(['reviews']),
             'wallets' => $canAccess(['wallets']),
+            'orders' => $canAccess(['orders']),
             'banners' => $canAccess(['banners']),
             'filters' => $canAccess(['filters', 'filters_values']),
             'subadmins' => $isAdmin,
@@ -312,7 +313,7 @@ class AdminController extends Controller
                 ->get()
             : collect();
 
-        $ordersModuleAvailable = false;
+        $ordersModuleAvailable = $dashboardPermissions['orders'];
 
         if ($dashboardPermissions['reviews']) {
             $focusCard = [
@@ -566,7 +567,7 @@ class AdminController extends Controller
         Session::put('page', 'subadmins');
         $subadminRoles = AdminsRole::where('subadmin_id', $id)->get()->toArray();
         $subadminDetails = Admin::where('id', $id)->first()->toArray();
-        $modules = ['categories', 'products', 'brands', 'users', 'reviews', 'wallets', 'filters', 'filters_values', 'banners'];
+        $modules = ['categories', 'products', 'brands', 'users', 'reviews', 'wallets', 'orders', 'filters', 'filters_values', 'banners'];
         $title = "Update ".$subadminDetails['name']." Subadmin Roles/Permissions";
         return view('admin.subadmins.update_roles')->with(compact('title', 'id', 'subadminRoles', 'modules'));
     }

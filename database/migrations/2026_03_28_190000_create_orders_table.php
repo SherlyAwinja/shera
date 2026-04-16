@@ -10,37 +10,35 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_address_id')->nullable()->constrained('user_addresses')->nullOnDelete();
-            $table->string('order_uuid', 36)->unique();
-            $table->string('order_number', 40)->unique();
-            $table->string('payment_method', 30);
-            $table->string('payment_status', 30)->default('pending');
-            $table->string('order_status', 30)->default('placed');
+
+
+            // Payment and order status
+            $table->string('payment_method')->nullable(); // e.g., 'mpesa', 'card', 'paypal'
+            $table->string('payment_status')->default('pending'); // e.g., 'pending', 'paid', 'failed', 'refunded'
+            $table->string('order_status')->default('pending'); // e.g., 'pending', 'processing', 'shipped', 'delivered', 'cancelled'
             $table->string('currency', 10)->default('KSH');
             $table->unsignedInteger('items_count')->default(0);
+
+            // Pricing details
             $table->decimal('subtotal_amount', 12, 2)->default(0);
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->decimal('wallet_applied_amount', 12, 2)->default(0);
             $table->decimal('shipping_amount', 12, 2)->default(0);
             $table->decimal('grand_total', 12, 2)->default(0);
-            $table->string('address_label', 100)->nullable();
-            $table->string('recipient_name', 150);
-            $table->string('recipient_phone', 30);
-            $table->string('email')->nullable();
-            $table->string('country', 191);
-            $table->string('county', 191)->nullable();
-            $table->string('sub_county', 191)->nullable();
-            $table->string('address_line1');
-            $table->string('address_line2')->nullable();
-            $table->string('estate', 191)->nullable();
-            $table->text('landmark')->nullable();
-            $table->string('pincode', 20);
-            $table->string('shipping_zone', 100)->nullable();
-            $table->string('shipping_eta', 100)->nullable();
-            $table->json('shipping_quote')->nullable();
-            $table->timestamp('placed_at');
+
+            // Tracking and Shipping partners (nullable, populated when shipped)
+            $table->string('tracking_number')->nullable();
+            $table->string('tracking_link', 1000)->nullable();
+            $table->string('shipping_partner')->nullable();
+
+            // Transaction & reference fields (optional, for future integration)
+            $table->string('transaction_id')->nullable(); // For payment gateway transaction reference
+            $table->string('order_number')->nullable(); // Can generate a unique order number for display/reference
+
             $table->timestamps();
+
         });
     }
 

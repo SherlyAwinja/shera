@@ -10,6 +10,8 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Services\Front\CartService;
+use App\Services\Front\CheckoutService;
+use App\Services\Front\WalletService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +26,11 @@ class CheckoutController extends Controller
 {
     private const SESSION_SELECTED_ADDRESS = 'checkout_selected_address_id';
 
-    public function __construct(private readonly CartService $cartService)
+    public function __construct(
+        private readonly CartService $cartService,
+        private readonly CheckoutService $checkoutService,
+        private readonly WalletService $walletService
+    )
     {
     }
 
@@ -61,7 +67,7 @@ class CheckoutController extends Controller
             }
         });
 
-        $request->session()->put(self::SESSION_SELECTED_ADDRESS, (int) $address->id);
+        $request->session()->put(self::SESSION_SELECTED_ADDRESS, (int) ($address->id ?? 0));
         $payload = $this->checkoutStatePayload($request, $user);
 
         if ($request->expectsJson()) {
@@ -198,14 +204,115 @@ class CheckoutController extends Controller
         ]);
     }
 
+    public function applyWallet(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'wallet_amount' => ['required', 'numeric', 'min:0.01'],
+            'address_id' => ['nullable', 'integer', 'exists:user_addresses,id'],
+        ]);
+
+        $addresses = $this->savedAddresses($request->user());
+        $selectedAddress = ! empty($validated['address_id'])
+            ? $this->ownedAddress(
+                $request->user(),
+                UserAddress::query()->findOrFail((int) $validated['address_id'])
+            )
+            : $this->resolveSelectedAddress($request, $addresses);
+        $summary = $this->buildCheckoutSummary($this->cartService->getCart(), $selectedAddress);
+
+        if (empty($summary['cartItems'])) {
+            return $this->walletSummaryResponse(
+                $summary,
+                $selectedAddress,
+                false,
+                'Your cart is empty. Add products before applying wallet credit.'
+            );
+        }
+
+        if (! ($summary['walletControlsEnabled'] ?? false)) {
+            return $this->walletSummaryResponse(
+                $summary,
+                $selectedAddress,
+                false,
+                'Choose a valid delivery address before applying wallet credit.'
+            );
+        }
+
+        $walletBalance = round((float) ($summary['cart']['wallet_balance'] ?? 0), 2);
+        $payableBeforeWalletTotal = round((float) ($summary['payableBeforeWalletTotal'] ?? 0), 2);
+
+        if ($walletBalance <= 0) {
+            return $this->walletSummaryResponse(
+                $summary,
+                $selectedAddress,
+                false,
+                'No active wallet balance is available on your account.'
+            );
+        }
+
+        if ($payableBeforeWalletTotal <= 0) {
+            $this->clearWalletState($request);
+
+            return $this->walletSummaryResponse(
+                $this->buildCheckoutSummary($this->cartService->getCart(), $selectedAddress),
+                $selectedAddress,
+                false,
+                'There is no remaining payable amount to cover with wallet credit.'
+            );
+        }
+
+        $normalized = $this->walletService->normalizeRequestedAmount(
+            (float) $validated['wallet_amount'],
+            $walletBalance,
+            $payableBeforeWalletTotal
+        );
+
+        if ($normalized['applied_amount'] <= 0) {
+            return $this->walletSummaryResponse(
+                $summary,
+                $selectedAddress,
+                false,
+                'Wallet credit cannot be applied to this checkout right now.'
+            );
+        }
+
+        $request->session()->put('applied_wallet_amount', $normalized['requested_amount']);
+        $request->session()->put('applied_wallet_user_id', (int) $request->user()->id);
+
+        $updatedSummary = $this->buildCheckoutSummary($this->cartService->getCart(), $selectedAddress);
+        $message = $normalized['was_adjusted']
+            ? 'Wallet credit adjusted to ' . $this->walletService->formatAmount((float) ($updatedSummary['cart']['wallet_applied'] ?? 0)) . ' based on your live balance and checkout total.'
+            : 'Wallet credit of ' . $this->walletService->formatAmount((float) ($updatedSummary['cart']['wallet_applied'] ?? 0)) . ' applied to this checkout.';
+
+        return $this->walletSummaryResponse($updatedSummary, $selectedAddress, true, $message);
+    }
+
+    public function removeWallet(Request $request): JsonResponse
+    {
+        $addresses = $this->savedAddresses($request->user());
+        $selectedAddress = $this->resolveSelectedAddress($request, $addresses);
+
+        $this->clearWalletState($request);
+
+        return $this->walletSummaryResponse(
+            $this->buildCheckoutSummary($this->cartService->getCart(), $selectedAddress),
+            $selectedAddress,
+            true,
+            'Wallet credit removed from this checkout.'
+        );
+    }
+
     public function placeOrder(PlaceOrderRequest $request): RedirectResponse
     {
+        $validated = $request->validated();
         $addresses = $this->savedAddresses($request->user());
         $requestedAddressId = (int) $request->input('address_id', 0);
         $selectedAddress = $requestedAddressId > 0
             ? $this->ownedAddress($request->user(), UserAddress::query()->findOrFail($requestedAddressId))
             : $this->resolveSelectedAddress($request, $addresses);
         $summary = $this->buildCheckoutSummary($this->cartService->getCart(), $selectedAddress);
+        $selectedPaymentOption = collect($summary['paymentMethods'] ?? [])
+            ->firstWhere('code', $validated['payment_method']);
 
         if (empty($summary['cart']['items'])) {
             return redirect()
@@ -219,52 +326,25 @@ class CheckoutController extends Controller
                 ->with('checkout_error', 'Choose a valid delivery address before continuing to payment.');
         }
 
+        if (! $selectedPaymentOption || ! ($selectedPaymentOption['enabled'] ?? false)) {
+            return redirect()
+                ->route('user.checkout.index')
+                ->with('checkout_error', 'Choose an available payment method before placing the order.');
+        }
+
+        if (! $selectedAddress instanceof UserAddress) {
+            return redirect()
+                ->route('user.checkout.index')
+                ->with('checkout_error', 'Choose a valid delivery address before continuing to payment.');
+        }
+
         try {
-            $order = DB::transaction(function () use ($request, $selectedAddress) {
-                $lockedCart = $this->cartService->getCart(true);
-                $lockedSummary = $this->buildCheckoutSummary($lockedCart, $selectedAddress);
-
-                if (empty($lockedSummary['cart']['items'])) {
-                    throw ValidationException::withMessages([
-                        'cart' => 'Your cart is empty. Add products before continuing to payment.',
-                    ]);
-                }
-
-                if (! $lockedSummary['canProceed']) {
-                    throw ValidationException::withMessages([
-                        'address' => 'Choose a valid delivery address before continuing to payment.',
-                    ]);
-                }
-
-                $cartRows = $this->cartService->currentCartQuery()
-                    ->with(['product' => function ($query) {
-                        $query->with(['product_images']);
-                    }])
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get();
-
-                $user = $request->user();
-
-                $order = Order::query()->create($this->buildOrderAttributes(
-                    $user,
-                    $selectedAddress,
-                    $lockedSummary,
-                    $request->validated()['payment_method']
-                ));
-
-                $order->items()->createMany($this->buildOrderItemsPayload($cartRows));
-
-                if ($cartRows->isNotEmpty()) {
-                    $this->cartService->currentCartQuery()
-                        ->whereKey($cartRows->pluck('id')->all())
-                        ->delete();
-                }
-
-                $this->clearCheckoutState($request);
-
-                return $order;
-            });
+            $order = $this->checkoutService->createOrderFromCart(
+                $request,
+                $selectedAddress,
+                $validated,
+                fn (array $cart, UserAddress $address): array => $this->buildCheckoutSummary($cart, $address)
+            );
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first() ?: 'Unable to place your order right now.';
 
@@ -279,9 +359,19 @@ class CheckoutController extends Controller
                 ->with('checkout_error', 'Unable to place your order right now. Please try again.');
         }
 
+        $paymentLabel = $this->paymentMethodLabel($validated['payment_method']);
+        $walletAppliedAmount = round((float) $order->wallet_applied_amount, 2);
+        $successMessage = $validated['payment_method'] === 'wallet'
+            ? 'Your order has been placed successfully and paid fully from your wallet balance.'
+            : ($walletAppliedAmount > 0
+                ? 'Your order has been placed successfully. Wallet credit of ' . $this->walletService->formatAmount($walletAppliedAmount) . ' was applied and ' . $paymentLabel . ' is set for the remaining balance.'
+                : ($validated['payment_method'] === 'cod'
+                    ? 'Your cash on delivery order has been placed successfully.'
+                    : 'Your order has been placed successfully with ' . $paymentLabel . ' selected as the payment method.'));
+
         return redirect()
-            ->route('user.checkout.success', ['order' => $order->id], false)
-            ->with('checkout_success', 'Your cash on delivery order has been placed successfully.');
+            ->route('user.checkout.success', ['order' => $order->id])
+            ->with('checkout_success', $successMessage);
     }
 
     public function success(Request $request, Order $order): View
@@ -339,12 +429,35 @@ class CheckoutController extends Controller
         $shippingAmount = ($shippingQuote['serviceable'] ?? false)
             ? round((float) ($shippingQuote['shipping_amount'] ?? 0), 2)
             : 0.0;
-        $grandTotal = round((float) ($cart['total'] ?? 0) + $shippingAmount, 2);
+        $payableBeforeWalletTotal = round((float) ($cart['payable_before_wallet'] ?? 0) + $shippingAmount, 2);
 
         $addressHasRequiredFields = $selectedAddress !== null
             && filled($selectedAddress->recipient_name)
             && filled($selectedAddress->recipient_phone)
             && filled($selectedAddress->pincode);
+        $walletControlsEnabled = ! empty($cart['items'])
+            && ! $previewOnly
+            && $addressHasRequiredFields
+            && ($shippingQuote['serviceable'] ?? false);
+        $walletState = $this->resolveCheckoutWalletState(
+            $cart,
+            $walletControlsEnabled ? $payableBeforeWalletTotal : 0.0
+        );
+
+        $cart['wallet_balance'] = $walletState['wallet_balance'];
+        $cart['wallet_available_to_apply'] = $walletState['wallet_available_to_apply'];
+        $cart['requested_wallet_amount'] = $walletState['requested_wallet_amount'];
+        $cart['wallet_applied'] = $walletState['wallet_applied'];
+
+        $grandTotal = $walletControlsEnabled
+            ? round(max(0, $payableBeforeWalletTotal - $walletState['wallet_applied']), 2)
+            : $payableBeforeWalletTotal;
+        $cart['remaining_payable'] = $grandTotal;
+        $cart['requires_payment_gateway'] = $grandTotal > 0;
+        $cart['can_checkout_with_wallet_only'] = $walletControlsEnabled
+            && $walletState['wallet_applied'] > 0
+            && $grandTotal == 0.0;
+        $cart['total'] = $grandTotal;
 
         $canProceed = ! empty($cart['items'])
             && ! $previewOnly
@@ -362,16 +475,43 @@ class CheckoutController extends Controller
         return [
             'cart' => $cart,
             'cartItems' => $cart['items'],
+            'paymentMethods' => $this->paymentMethodOptions(
+                $cart,
+                $payableBeforeWalletTotal,
+                $grandTotal,
+                $walletControlsEnabled
+            ),
             'selectedAddress' => $selectedAddress,
             'selectedAddressId' => $selectedAddress?->id,
             'previewOnly' => $previewOnly,
             'previewPincode' => $previewPincode,
             'shippingQuote' => $shippingQuote,
             'shippingAmount' => $shippingAmount,
+            'payableBeforeWalletTotal' => $payableBeforeWalletTotal,
             'grandTotal' => $grandTotal,
             'canProceed' => $canProceed,
+            'walletControlsEnabled' => $walletControlsEnabled,
             'statusTone' => $status['tone'],
             'statusMessage' => $status['message'],
+        ];
+    }
+
+    protected function resolveCheckoutWalletState(array $cart, float $payableBeforeWalletTotal): array
+    {
+        $walletBalance = round((float) ($cart['wallet_balance'] ?? 0), 2);
+        $requestedWalletAmount = round((float) ($cart['requested_wallet_amount'] ?? 0), 2);
+        $walletAvailableToApply = round(min($walletBalance, max($payableBeforeWalletTotal, 0)), 2);
+        $walletApplied = 0.0;
+
+        if ($requestedWalletAmount > 0 && $walletAvailableToApply > 0) {
+            $walletApplied = round(min($requestedWalletAmount, $walletAvailableToApply), 2);
+        }
+
+        return [
+            'wallet_balance' => $walletBalance,
+            'wallet_available_to_apply' => $walletAvailableToApply,
+            'requested_wallet_amount' => $requestedWalletAmount,
+            'wallet_applied' => $walletApplied,
         ];
     }
 
@@ -540,102 +680,95 @@ class CheckoutController extends Controller
         ];
     }
 
-    protected function buildOrderAttributes(
-        User $user,
-        UserAddress $selectedAddress,
+    protected function walletSummaryResponse(
         array $summary,
-        string $paymentMethod
-    ): array {
-        $shippingQuote = $summary['shippingQuote'] ?? [];
-
-        return [
-            'user_id' => $user->id,
-            'user_address_id' => $selectedAddress->id,
-            'order_uuid' => (string) Str::uuid(),
-            'order_number' => $this->generateOrderNumber(),
-            'payment_method' => $paymentMethod,
-            'payment_status' => 'pending',
-            'order_status' => 'placed',
-            'currency' => 'KSH',
-            'items_count' => collect($summary['cartItems'] ?? [])->sum('qty'),
-            'subtotal_amount' => round((float) ($summary['cart']['subtotal'] ?? 0), 2),
-            'discount_amount' => round((float) ($summary['cart']['discount'] ?? 0), 2),
-            'wallet_applied_amount' => round((float) ($summary['cart']['wallet_applied'] ?? 0), 2),
-            'shipping_amount' => round((float) ($summary['shippingAmount'] ?? 0), 2),
-            'grand_total' => round((float) ($summary['grandTotal'] ?? 0), 2),
-            'address_label' => $selectedAddress->label,
-            'recipient_name' => (string) $selectedAddress->recipient_name,
-            'recipient_phone' => (string) $selectedAddress->recipient_phone,
-            'email' => $user->email,
-            'country' => (string) $selectedAddress->country,
-            'county' => $selectedAddress->county,
-            'sub_county' => $selectedAddress->sub_county,
-            'address_line1' => (string) $selectedAddress->address_line1,
-            'address_line2' => $selectedAddress->address_line2,
-            'estate' => $selectedAddress->estate,
-            'landmark' => $selectedAddress->landmark,
-            'pincode' => (string) $selectedAddress->pincode,
-            'shipping_zone' => $shippingQuote['zone'] ?? null,
-            'shipping_eta' => $shippingQuote['eta'] ?? null,
-            'shipping_quote' => $shippingQuote,
-            'placed_at' => now(),
-        ];
+        ?UserAddress $selectedAddress,
+        bool $status,
+        string $message,
+        int $statusCode = 200
+    ): JsonResponse {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'selected_address_id' => $selectedAddress?->id,
+            'summary_html' => $this->renderSummary($summary),
+            'summary' => $summary,
+        ], $statusCode);
     }
 
-    protected function buildOrderItemsPayload(Collection $cartRows): array
+    protected function paymentMethodOptions(
+        array $cart,
+        float $payableBeforeWalletTotal,
+        float $grandTotal,
+        bool $walletControlsEnabled
+    ): array
     {
-        return $cartRows->map(function ($cartRow) {
-            $product = $cartRow->product;
-            $image = $product && filled($product->main_image)
-                ? asset('product-image/medium/' . $product->main_image)
-                : asset('front/images/products/no-image.jpg');
+        $walletBalance = round((float) ($cart['wallet_balance'] ?? 0), 2);
+        $walletAvailableToApply = round((float) ($cart['wallet_available_to_apply'] ?? 0), 2);
+        $walletApplied = round((float) ($cart['wallet_applied'] ?? 0), 2);
+        $walletCoversCheckout = $walletApplied > 0 && $grandTotal == 0.0;
 
-            return [
-                'product_id' => $product?->id,
-                'product_name' => $product?->product_name ?: 'Product',
-                'product_code' => $product?->product_code,
-                'product_url' => $product?->product_url,
-                'product_image' => $image,
-                'size' => $cartRow->product_size,
-                'color' => $cartRow->product_color,
-                'quantity' => (int) $cartRow->product_qty,
-                'unit_price' => round((float) $this->resolveOrderItemUnitPrice($cartRow), 2),
-                'line_total' => round((float) $this->resolveOrderItemUnitPrice($cartRow) * (int) $cartRow->product_qty, 2),
-            ];
-        })->values()->all();
+        return collect(config('checkout.payment.methods', []))
+            ->map(function (array $method, string $code) use (
+                $grandTotal,
+                $payableBeforeWalletTotal,
+                $walletApplied,
+                $walletAvailableToApply,
+                $walletBalance,
+                $walletControlsEnabled,
+                $walletCoversCheckout
+            ) {
+                $enabled = true;
+                $hint = null;
+
+                if ($code === 'wallet') {
+                    if (! $walletControlsEnabled) {
+                        $enabled = false;
+                        $hint = 'Choose a valid delivery address before applying wallet credit or using wallet as the payment method.';
+                    } elseif ($walletBalance <= 0) {
+                        $enabled = false;
+                        $hint = 'No wallet balance is currently available on your account.';
+                    } elseif ($walletCoversCheckout) {
+                        $hint = 'Wallet credit fully covers this order. You can place it directly with wallet.';
+                    } elseif ($walletAvailableToApply >= $payableBeforeWalletTotal) {
+                        $enabled = false;
+                        $hint = 'Apply the full available wallet balance below to use wallet as the payment method for this order.';
+                    } else {
+                        $enabled = false;
+                        $hint = 'Wallet can cover ' . $this->walletService->formatAmount($walletAvailableToApply) . ' right now. Apply it below, then choose another method for the remaining ' . $this->walletService->formatAmount($grandTotal) . '.';
+                    }
+                } elseif ($walletCoversCheckout) {
+                    $enabled = false;
+                    $hint = 'Wallet credit already covers the full order. Select Wallet to place it.';
+                } elseif (! $walletControlsEnabled && $grandTotal > 0) {
+                    if ($code === 'cod' || $code === 'bank_transfer' || $code === 'card' || $code === 'mobile_wallet' || $code === 'paypal') {
+                        $hint = 'Select a valid delivery address to confirm the final payable amount before placing the order.';
+                    }
+                }
+
+                return array_merge($method, [
+                    'code' => $code,
+                    'enabled' => $enabled,
+                    'hint' => $hint,
+                    'show_credit_controls' => $code === 'wallet',
+                ]);
+            })
+            ->values()
+            ->all();
     }
 
-    protected function resolveOrderItemUnitPrice($cartRow): float
+    protected function paymentMethodLabel(string $paymentMethod): string
     {
-        $product = $cartRow->product;
-        $size = (string) ($cartRow->product_size ?? 'NA');
-
-        if ($product && $size !== '' && strtoupper($size) !== 'NA') {
-            $attributePrice = $product::getAttributePrice($product->id, $size);
-
-            if (($attributePrice['status'] ?? false) === true) {
-                return (float) ($attributePrice['final_price'] ?? $attributePrice['product_price'] ?? 0);
-            }
-        }
-
-        return (float) ($product?->final_price ?? $product?->product_price ?? 0);
+        return (string) data_get(
+            config('checkout.payment.methods', []),
+            $paymentMethod . '.label',
+            Str::headline(str_replace('_', ' ', $paymentMethod))
+        );
     }
 
-    protected function generateOrderNumber(): string
-    {
-        do {
-            $orderNumber = 'SHR-' . now()->format('Ymd') . '-' . str_pad((string) random_int(1, 999999), 6, '0', STR_PAD_LEFT);
-        } while (Order::query()->where('order_number', $orderNumber)->exists());
-
-        return $orderNumber;
-    }
-
-    protected function clearCheckoutState(Request $request): void
+    protected function clearWalletState(Request $request): void
     {
         $request->session()->forget([
-            'applied_coupon',
-            'applied_coupon_id',
-            'applied_coupon_discount',
             'applied_wallet_amount',
             'applied_wallet_user_id',
         ]);

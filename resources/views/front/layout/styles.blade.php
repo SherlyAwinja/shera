@@ -42,4 +42,74 @@
     margin-top: 5px;
     margin-right: -10px;
 }
+
+.user-nav-dropdown .dropdown-toggle
+{
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-nav-menu
+{
+    min-width: 220px;
+    margin-top: 0.35rem;
+    padding: 0.4rem;
+    border: 1px solid rgba(26, 26, 26, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.user-nav-menu .dropdown-item
+{
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+    font-weight: 500;
+    white-space: normal;
+}
+
+.user-nav-menu .dropdown-item:hover,
+.user-nav-menu .dropdown-item:focus,
+.user-nav-menu .dropdown-item.active
+{
+    background: rgba(209, 156, 151, 0.16);
+    color: #1c1c1c;
+}
+
+.user-nav-logout-form
+{
+    margin: 0;
+}
+
+.user-nav-logout
+{
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+}
+
+@media (max-width: 991.98px)
+{
+    .user-nav-dropdown
+    {
+        width: 100%;
+    }
+
+    .user-nav-dropdown .dropdown-toggle
+    {
+        max-width: none;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .user-nav-dropdown .dropdown-menu
+    {
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0.2rem;
+        box-shadow: none;
+    }
+}
 </style>

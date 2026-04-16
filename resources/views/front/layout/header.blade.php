@@ -166,12 +166,52 @@ $totalCartItems = totalCartItems();
                             <a href="{{ route('user.login', [], false) }}" class="nav-item nav-link {{ request()->routeIs('user.login') ? 'active' : '' }}">Login</a>
                             <a href="{{ route('user.register', [], false) }}" class="nav-item nav-link {{ request()->routeIs('user.register') ? 'active' : '' }}">Register</a>
                         @else
-                            <a href="{{ route('user.account', [], false) }}" class="nav-item nav-link {{ request()->routeIs('user.account') || request()->routeIs('user.account.update') ? 'active' : '' }}">My Account</a>
-                            <span class="nav-item nav-link">{{ auth()->user()->name ?: auth()->user()->email }}</span>
-                            <form method="POST" action="{{ route('user.logout', [], false) }}" class="d-inline">
-                                @csrf
-                                <button type="submit" class="nav-item nav-link btn btn-link bg-transparent border-0 p-0">Logout</button>
-                            </form>
+                            @php
+                                $isWalletArea = request()->routeIs('user.account.wallet')
+                                    || request()->routeIs('user.account.wallet.*');
+                                $isAccountArea = request()->routeIs('user.account')
+                                    || request()->routeIs('user.account.update')
+                                    || request()->routeIs('user.account.addresses.*')
+                                    || request()->routeIs('user.account.email.*')
+                                    || request()->routeIs('user.account.locations.*')
+                                    || request()->routeIs('user.account.password.update');
+                                $isOrdersArea = request()->routeIs('user.orders.*');
+                                $userMenuActive = $isAccountArea || $isWalletArea || $isOrdersArea;
+                                $displayName = auth()->user()->name ?: auth()->user()->email;
+                            @endphp
+                            <div class="nav-item dropdown user-nav-dropdown">
+                                <a
+                                    href="#"
+                                    class="nav-link dropdown-toggle {{ $userMenuActive ? 'active' : '' }}"
+                                    data-toggle="dropdown"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                    title="Open account menu"
+                                >
+                                    Hi, {{ $displayName }}
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right user-nav-menu">
+                                    <a href="{{ route('user.account', [], false) }}" class="dropdown-item {{ $isAccountArea ? 'active' : '' }}">
+                                        My Account
+                                    </a>
+                                    <a href="{{ route('user.account.wallet', [], false) }}" class="dropdown-item {{ $isWalletArea ? 'active' : '' }}">
+                                        My Wallet
+                                    </a>
+                                    <a href="{{ route('user.orders.index', [], false) }}" class="dropdown-item {{ $isOrdersArea ? 'active' : '' }}">
+                                        My Orders
+                                    </a>
+                                    <a href="{{ route('user.account', [], false) }}#account-change-password" class="dropdown-item {{ $isAccountArea ? 'active' : '' }}">
+                                        Change Password
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <form method="POST" action="{{ route('user.logout', [], false) }}" class="user-nav-logout-form">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item user-nav-logout">
+                                            Log out
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         @endguest
                     </div>
                 </div>

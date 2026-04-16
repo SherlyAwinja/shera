@@ -4,6 +4,7 @@
     $savedAddresses = collect($savedAddresses ?? [])->values();
     $walletBalance = (float) ($walletBalance ?? 0);
     $walletEntries = collect($walletEntries ?? [])->values();
+    $pendingWalletRequests = $walletEntries->filter(fn ($entry) => $entry->is_pending_top_up_request)->values();
     $selectedCountry = old('country', $user->country ?: 'Kenya');
     $selectedCounty = old('county', $user->county);
     $selectedSubCounty = old('sub_county', $user->sub_county);
@@ -573,6 +574,10 @@
                                     <div class="alert alert-success">{{ session('address_success') }}</div>
                                 @endif
 
+                                @if (session('wallet_top_up_success'))
+                                    <div class="alert alert-success">{{ session('wallet_top_up_success') }}</div>
+                                @endif
+
                                 @if ($errors->any())
                                     <div class="alert alert-danger">
                                         Please correct the highlighted fields and try again.
@@ -1067,7 +1072,7 @@
 
                                 <div class="account-divider"></div>
 
-                                <div>
+                                <div id="account-wallet">
                                     <span class="account-panel-kicker">Wallet Activity</span>
                                     <h4 class="account-section-title">Recent Wallet Entries</h4>
                                     <p class="account-section-copy">Every credit and debit applied to your account is listed here so you can verify promotions, wallet-only checkout debits, and any remaining spendable balance.</p>
@@ -1079,6 +1084,55 @@
                                         <span class="small text-muted">
                                             Current live wallet balance: <strong>KSH.{{ number_format($walletBalance, 2) }}</strong>
                                         </span>
+                                    </div>
+
+                                    <div class="account-field mb-4">
+                                        <div class="account-status-strip mb-3">
+                                            <span class="account-status-badge" data-tone="{{ $pendingWalletRequests->isNotEmpty() ? 'warning' : 'success' }}">
+                                                {{ $pendingWalletRequests->isNotEmpty() ? $pendingWalletRequests->count() . ' Pending Request(s)' : 'Top-Up Available' }}
+                                            </span>
+                                            <span class="small text-muted">
+                                                Submit a wallet top-up request here. The credit stays pending until an admin reviews and activates it.
+                                            </span>
+                                        </div>
+
+                                        @if ($errors->walletTopUp->any())
+                                            <div class="alert alert-danger">
+                                                Please review the wallet top-up form and try again.
+                                            </div>
+                                        @endif
+
+                                        <form method="POST" action="{{ route('user.account.wallet.top-up', [], false) }}" novalidate>
+                                            @csrf
+
+                                            <div class="form-row">
+                                                <div class="col-md-4">
+                                                    <div class="account-field">
+                                                        <label class="account-label" for="wallet_top_up_amount">Top-Up Amount</label>
+                                                        <input type="number" min="1" step="0.01" id="wallet_top_up_amount" name="amount" class="form-control account-input @error('amount', 'walletTopUp') is-invalid @enderror" value="{{ old('amount') }}" placeholder="1000.00" required>
+                                                        <small class="account-helper">Enter the amount you want credited to your wallet.</small>
+                                                        @error('amount', 'walletTopUp')
+                                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-5">
+                                                    <div class="account-field">
+                                                        <label class="account-label" for="wallet_top_up_note">Reference / Note</label>
+                                                        <input type="text" id="wallet_top_up_note" name="note" class="form-control account-input @error('note', 'walletTopUp') is-invalid @enderror" value="{{ old('note') }}" placeholder="Mpesa reference, transfer note, or reason">
+                                                        <small class="account-helper">Optional, but useful if the admin needs context when approving the credit.</small>
+                                                        @error('note', 'walletTopUp')
+                                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3 d-flex align-items-end">
+                                                    <button type="submit" class="btn btn-outline-primary px-4 account-submit-btn w-100">Request Top Up</button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
 
                                     @if ($walletEntries->isEmpty())
@@ -1122,7 +1176,7 @@
 
                                 <div class="account-divider"></div>
 
-                                <div>
+                                <div id="account-change-password">
                                     <span class="account-panel-kicker">Security</span>
                                     <h4 class="account-section-title">Change Password</h4>
                                     <p class="account-section-copy">Use your current password to confirm the update, then choose a stronger one for future logins.</p>

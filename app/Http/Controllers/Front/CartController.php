@@ -59,7 +59,7 @@ class CartController extends Controller
     {
         $data = $request->validated();
 
-        $result = $this->service->updateQty((int) $cartId, (int) $data['qty']);
+        $result = $this->service->updateItem((int) $cartId, $data);
 
         return response()->json($result, $result['status'] ? 200:422);
     }

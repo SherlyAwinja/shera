@@ -36,7 +36,11 @@ class CartStoreTest extends TestCase
 
     public function test_store_persists_the_selected_color_when_provided(): void
     {
-        $productId = $this->createProduct();
+        $productId = $this->createProduct([
+            'product_color' => 'Black,Brown',
+        ]);
+        $this->createVariant($productId, 'M', 'Black', 3);
+        $this->createVariant($productId, 'M', 'Brown', 2);
 
         $response = $this->withSession([])->postJson(route('cart.store'), [
             'product_id' => $productId,
@@ -59,9 +63,146 @@ class CartStoreTest extends TestCase
         ]);
     }
 
-    private function createProduct(): int
+    public function test_store_requires_a_specific_color_when_multiple_variant_combinations_exist(): void
     {
-        return (int) DB::table('products')->insertGetId([
+        $productId = $this->createProduct([
+            'product_color' => 'Black,Brown',
+        ]);
+        $this->createVariant($productId, 'M', 'Black', 3);
+        $this->createVariant($productId, 'M', 'Brown', 2);
+
+        $response = $this->withSession([])->postJson(route('cart.store'), [
+            'product_id' => $productId,
+            'qty' => 1,
+            'size' => 'M',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJson([
+                'status' => false,
+                'message' => 'Select a color before adding this item to the cart.',
+            ]);
+    }
+
+    public function test_cart_page_renders_variant_selectors_for_editable_cart_lines(): void
+    {
+        $productId = $this->createProduct([
+            'product_color' => 'Black,Brown',
+        ]);
+        $this->createVariant($productId, 'M', 'Black', 3);
+        $this->createVariant($productId, 'L', 'Brown', 2);
+
+        DB::table('carts')->insert([
+            'session_id' => 'cart-variant-page-session',
+            'product_id' => $productId,
+            'product_size' => 'M',
+            'product_color' => 'Black',
+            'product_qty' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withSession(['session_id' => 'cart-variant-page-session'])
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('cart-variant-select', false)
+            ->assertSeeText('Choose size and color here.');
+    }
+
+    public function test_update_can_switch_a_cart_line_to_another_variant_combination(): void
+    {
+        $productId = $this->createProduct([
+            'product_color' => 'Black,Brown',
+        ]);
+        $this->createVariant($productId, 'M', 'Black', 3);
+        $this->createVariant($productId, 'L', 'Brown', 2);
+
+        $cartId = (int) DB::table('carts')->insertGetId([
+            'session_id' => 'cart-variant-update-session',
+            'product_id' => $productId,
+            'product_size' => 'M',
+            'product_color' => 'Black',
+            'product_qty' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withSession(['session_id' => 'cart-variant-update-session'])
+            ->patchJson(route('cart.update', ['cart' => $cartId]), [
+                'qty' => 1,
+                'size' => 'L',
+                'color' => 'Brown',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'status' => true,
+            ]);
+
+        $this->assertDatabaseHas('carts', [
+            'id' => $cartId,
+            'product_id' => $productId,
+            'product_size' => 'L',
+            'product_color' => 'Brown',
+            'product_qty' => 1,
+        ]);
+    }
+
+    public function test_update_merges_duplicate_lines_when_switching_to_an_existing_variant(): void
+    {
+        $productId = $this->createProduct([
+            'product_color' => 'Black,Brown',
+        ]);
+        $this->createVariant($productId, 'M', 'Black', 5);
+        $this->createVariant($productId, 'L', 'Brown', 5);
+
+        $sourceCartId = (int) DB::table('carts')->insertGetId([
+            'session_id' => 'cart-variant-merge-session',
+            'product_id' => $productId,
+            'product_size' => 'M',
+            'product_color' => 'Black',
+            'product_qty' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $targetCartId = (int) DB::table('carts')->insertGetId([
+            'session_id' => 'cart-variant-merge-session',
+            'product_id' => $productId,
+            'product_size' => 'L',
+            'product_color' => 'Brown',
+            'product_qty' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withSession(['session_id' => 'cart-variant-merge-session'])
+            ->patchJson(route('cart.update', ['cart' => $sourceCartId]), [
+                'qty' => 1,
+                'size' => 'L',
+                'color' => 'Brown',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'status' => true,
+            ]);
+
+        $this->assertDatabaseMissing('carts', [
+            'id' => $sourceCartId,
+        ]);
+
+        $this->assertDatabaseHas('carts', [
+            'id' => $targetCartId,
+            'product_id' => $productId,
+            'product_size' => 'L',
+            'product_color' => 'Brown',
+            'product_qty' => 3,
+        ]);
+    }
+
+    private function createProduct(array $overrides = []): int
+    {
+        return (int) DB::table('products')->insertGetId(array_merge([
             'category_id' => 1,
             'brand_id' => null,
             'admin_id' => 1,
@@ -95,6 +236,18 @@ class CartStoreTest extends TestCase
             'meta_keywords' => null,
             'is_featured' => 'No',
             'status' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $overrides));
+    }
+
+    private function createVariant(int $productId, string $size, string $color, int $stock): int
+    {
+        return (int) DB::table('product_variants')->insertGetId([
+            'product_id' => $productId,
+            'size' => $size,
+            'color' => $color,
+            'stock' => $stock,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

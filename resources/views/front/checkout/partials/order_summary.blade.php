@@ -1,4 +1,12 @@
 <div class="checkout-summary-card">
+@php
+        $selectedPaymentMethod = old('payment_method', config('checkout.payment.default_method', 'cod'));
+        $walletBalance = (float) ($cart['wallet_balance'] ?? 0);
+        $walletAvailableToApply = (float) ($cart['wallet_available_to_apply'] ?? 0);
+        $walletApplied = (float) ($cart['wallet_applied'] ?? 0);
+        $walletRequestedAmount = (float) ($cart['requested_wallet_amount'] ?? 0);
+        $walletAmountValue = $walletApplied > 0 ? $walletRequestedAmount : $walletAvailableToApply;
+    @endphp
     <div class="checkout-summary-head">
         <div>
             <span class="checkout-kicker">Order Summary</span>
@@ -61,6 +69,10 @@
                         {{ ($cart['discount'] ?? 0) > 0 ? '-KSH.' . number_format($cart['discount'], 2) : 'KSH.0.00' }}
                     </strong>
                 </div>
+                <div class="checkout-total-row">
+                    <span>Payable Before Wallet</span>
+                    <strong>KSH.{{ number_format($payableBeforeWalletTotal ?? 0, 2) }}</strong>
+                </div>
                 @if (($cart['wallet_applied'] ?? 0) > 0)
                     <div class="checkout-total-row">
                         <span>Wallet Applied</span>
@@ -93,23 +105,149 @@
                 </div>
             </div>
 
-            <div class="checkout-placeholder-card">
-                Quantity changes and coupon controls stay in the cart for now. This panel is ready to consume both when that step is connected.
-            </div>
-
             <form method="POST" action="{{ route('user.checkout.placeOrder', [], false) }}">
                 @csrf
                 @if ($selectedAddressId)
                     <input type="hidden" name="address_id" value="{{ $selectedAddressId }}">
                 @endif
+                <div class="checkout-payment-shell">
+                    <div class="checkout-payment-head">
+                        <span class="checkout-kicker">Payment Method</span>
+                        <h3 class="checkout-address-label mb-1">Choose how this order should be paid</h3>
+                        <div class="checkout-copy mb-0">
+                            Pick the payment route now so the order is recorded with the right settlement preference.
+                        </div>
+                    </div>
+
+                    <div class="checkout-payment-grid">
+                        @foreach (($paymentMethods ?? []) as $method)
+                            <div class="checkout-payment-option {{ ($method['show_credit_controls'] ?? false) ? 'checkout-payment-option--wallet' : '' }}">
+                                <input
+                                    type="radio"
+                                    id="checkout_payment_{{ $method['code'] }}"
+                                    name="payment_method"
+                                    value="{{ $method['code'] }}"
+                                    class="checkout-payment-input"
+                                    data-payment-method-input
+                                    {{ $selectedPaymentMethod === $method['code'] && ($method['enabled'] ?? true) ? 'checked' : '' }}
+                                    {{ ($method['enabled'] ?? true) ? '' : 'disabled' }}>
+                                <label
+                                    for="checkout_payment_{{ $method['code'] }}"
+                                    class="checkout-payment-label {{ ($method['enabled'] ?? true) ? '' : 'is-disabled' }}">
+                                    <span class="checkout-payment-icon">
+                                        <i class="fa {{ $method['icon'] ?? 'fa-credit-card' }}"></i>
+                                    </span>
+                                    <span class="checkout-payment-copy">
+                                        <span class="checkout-payment-top">
+                                            <span class="checkout-payment-name">{{ $method['label'] }}</span>
+                                            @if (!empty($method['meta']))
+                                                <span class="checkout-payment-chip">{{ $method['meta'] }}</span>
+                                            @endif
+                                        </span>
+                                        @if (!empty($method['description']))
+                                            <span class="checkout-payment-description">{{ $method['description'] }}</span>
+                                        @endif
+                                        @if (!empty($method['hint']))
+                                            <span class="checkout-payment-hint">{{ $method['hint'] }}</span>
+                                        @endif
+                                    </span>
+                                </label>
+
+                                @if (($method['show_credit_controls'] ?? false) === true)
+                                    <div class="checkout-wallet-panel {{ ($walletControlsEnabled ?? false) ? '' : 'is-disabled' }}">
+                                        <div class="checkout-wallet-panel-head">
+                                            <div>
+                                                <div class="checkout-address-label mb-1">Wallet Credit</div>
+                                                <div class="checkout-wallet-copy">Apply wallet balance here before final order placement. If it covers everything, select Wallet to complete the order.</div>
+                                            </div>
+                                            <span class="checkout-wallet-balance">
+                                                Balance: KSH.{{ number_format($walletBalance, 2) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="checkout-wallet-message" data-wallet-feedback></div>
+
+                                        @if ($walletBalance > 0)
+                                            <div class="checkout-wallet-copy mb-3">
+                                                Available to apply now:
+                                                <strong>KSH.{{ number_format($walletAvailableToApply, 2) }}</strong>
+                                                @if ($walletApplied > 0)
+                                                    <br>
+                                                    Applied now:
+                                                    <strong>KSH.{{ number_format($walletApplied, 2) }}</strong>
+                                                    <br>
+                                                    Remaining after wallet:
+                                                    <strong>KSH.{{ number_format($grandTotal, 2) }}</strong>
+                                                @endif
+                                            </div>
+
+                                            @if ($walletControlsEnabled ?? false)
+                                                <div class="checkout-wallet-form" data-checkout-wallet-form>
+                                                    <div class="input-group">
+                                                        <input
+                                                            type="number"
+                                                            min="0.01"
+                                                            step="0.01"
+                                                            class="form-control"
+                                                            value="{{ number_format($walletAmountValue, 2, '.', '') }}"
+                                                            data-wallet-amount-input
+                                                            placeholder="Enter wallet amount to apply">
+                                                        <div class="input-group-append">
+                                                            <button type="button" class="btn btn-primary" data-checkout-wallet-apply>Apply</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="checkout-wallet-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-outline-secondary checkout-wallet-action"
+                                                        data-checkout-wallet-full
+                                                        data-amount="{{ number_format($walletAvailableToApply, 2, '.', '') }}">
+                                                        Use Full Available Wallet
+                                                    </button>
+                                                    @if ($walletApplied > 0)
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-outline-danger checkout-wallet-action"
+                                                            data-checkout-wallet-remove>
+                                                            Remove Wallet Credit
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <div class="checkout-wallet-copy">
+                                                    Choose a complete, serviceable delivery address first so wallet credit can be matched to the final checkout total.
+                                                </div>
+                                            @endif
+                                        @else
+                                            <div class="checkout-wallet-copy">
+                                                You do not have any active wallet balance available right now.
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @error('payment_method')
+                        <div class="text-danger mt-3">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="checkout-placeholder-card">
+                    Payment choice and wallet credit now stay together here. Apply wallet balance if needed, then place the order with the remaining settlement method.
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-block checkout-submit-btn" {{ $canProceed ? '' : 'disabled aria-disabled=true' }}>
-                    Proceed to Payment
+                    Place Order
                 </button>
             </form>
 
             @if (! $canProceed)
                 <div class="checkout-address-meta mt-3">
-                    Proceed to payment is enabled only after a serviceable address with recipient details and pincode is selected.
+                    Order placement is enabled only after a serviceable address with recipient details and pincode is selected.
                 </div>
             @endif
         @else

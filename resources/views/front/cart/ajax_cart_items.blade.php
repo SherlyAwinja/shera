@@ -1,4 +1,10 @@
 @forelse($cartItems as $item)
+@php
+    $variantOptionsJson = json_encode(
+        $item['variant_options'] ?? [],
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+@endphp
 <tr>
     <td class="align-middle">
         <div class="cart-product-cell">
@@ -17,6 +23,47 @@
 
                     {{ $lineMeta ?: 'Ready for checkout' }}
                 </span>
+
+                @if(!empty($item['has_variant_controls']))
+                    <div
+                        class="cart-variant-editor"
+                        data-cart-id="{{ $item['cart_id'] }}"
+                        data-selected-size="{{ $item['size'] }}"
+                        data-selected-color="{{ $item['color'] ?? '' }}"
+                        data-variant-options='{{ $variantOptionsJson }}'>
+                        <div class="cart-variant-grid">
+                            @if(!empty($item['can_edit_size']))
+                                <label class="cart-variant-field">
+                                    <span class="cart-variant-label">Size</span>
+                                    <select class="form-control form-control-sm cart-variant-select" data-field="size">
+                                        @foreach(($item['size_options'] ?? []) as $sizeOption)
+                                            <option value="{{ $sizeOption }}" @selected((string) $sizeOption === (string) $item['size'])>
+                                                {{ $sizeOption }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endif
+
+                            @if(!empty($item['can_edit_color']))
+                                <label class="cart-variant-field">
+                                    <span class="cart-variant-label">Color</span>
+                                    <select class="form-control form-control-sm cart-variant-select" data-field="color">
+                                        @foreach(($item['color_options'] ?? []) as $colorOption)
+                                            <option value="{{ $colorOption }}" @selected((string) $colorOption === (string) ($item['color'] ?? ''))>
+                                                {{ $colorOption }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endif
+                        </div>
+
+                        <div class="cart-variant-note">
+                            Choose size and color here. The line updates instantly and keeps your quantity.
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </td>

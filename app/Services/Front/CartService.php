@@ -84,9 +84,10 @@ class CartService
     protected function resolveLinePrice(Cart $cartRow): float
     {
         $size = (string) ($cartRow->product_size ?? 'NA');
+        $color = $this->normalizeColor($cartRow->product_color ?? null);
 
         if ($size !== '' && strtoupper($size) !== 'NA') {
-            $attributePrice = Product::getAttributePrice($cartRow->product_id, $size);
+            $attributePrice = Product::getAttributePrice($cartRow->product_id, $size, $color);
 
             if (($attributePrice['status'] ?? false) === true) {
                 return (float) $attributePrice['final_price'];
@@ -119,6 +120,16 @@ class CartService
             return $storedColor;
         }
 
+        if ($cartRow->product && $cartRow->product->relationLoaded('productVariants')) {
+            $variantColors = $this->uniqueLabels(
+                $cartRow->product->productVariants->pluck('color')->all()
+            );
+
+            if (count($variantColors) === 1) {
+                return $variantColors[0];
+            }
+        }
+
         $rawColors = (string) ($cartRow->product->product_color ?? '');
         $colors = collect(preg_split('/\s*,\s*/', $rawColors, -1, PREG_SPLIT_NO_EMPTY))
             ->map(fn ($color) => trim((string) $color))
@@ -132,7 +143,14 @@ class CartService
     {
         $query = $this->currentCartQuery()
             ->with(['product' => function ($query) {
-                $query->with(['product_images', 'category']);
+                $query->with([
+                    'product_images',
+                    'category',
+                    'productVariants',
+                    'attributes' => function ($attributeQuery) {
+                        $attributeQuery->where('status', 1)->orderBy('sort')->orderBy('id');
+                    },
+                ]);
             }])
             ->orderBy('id', 'desc');
 
@@ -154,12 +172,11 @@ class CartService
                 continue;
             }
 
-            $pricing = Product::getAttributePrice($product->id, $row->product_size);
-            $unit = ($pricing['status'] ?? false)
-                ? ($pricing['final_price'] ?? $pricing['product_price'])
-                : ($product->final_price ?? $product->product_price);
+            $selectedSize = $this->normalizeSize($row->product_size ?? 'NA');
+            $selectedColor = $this->resolveLineColor($row);
+            $variantEditor = $this->buildVariantEditorState($product, $selectedSize, $selectedColor);
 
-            $unit = (float) $unit;
+            $unit = $this->resolveLinePrice($row);
             $fallbackImage = asset('front/images/products/no-image.jpg');
 
             if (!empty($product->main_image)) {
@@ -179,12 +196,18 @@ class CartService
                 'product_name' => $product->product_name,
                 'product_url' => $product->product_url,
                 'image' => $image,
-                'size' => $row->product_size,
-                'color' => $this->resolveLineColor($row),
+                'size' => $selectedSize,
+                'color' => $selectedColor,
                 'qty' => (int) $row->product_qty,
                 'unit_price' => $unit,
                 'line_total' => $lineTotal,
                 'category_id' => $product->category_id ?? null,
+                'variant_options' => $variantEditor['variant_options'],
+                'size_options' => $variantEditor['size_options'],
+                'color_options' => $variantEditor['color_options'],
+                'can_edit_size' => $variantEditor['can_edit_size'],
+                'can_edit_color' => $variantEditor['can_edit_color'],
+                'has_variant_controls' => $variantEditor['has_variant_controls'],
             ];
         }
 
@@ -321,16 +344,43 @@ class CartService
 
     public function addToCart($data)
     {
-        $size = $data['size'] ?? 'NA';
+        $size = $this->normalizeSize($data['size'] ?? 'NA');
         $color = $this->normalizeColor($data['color'] ?? null);
         $qty = (int) $data['qty'];
         $replaceQty = filter_var($data['replace_qty'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $product = Product::query()->with('productVariants')->find((int) $data['product_id']);
+
+        if (!$product) {
+            return ['status' => false, 'message' => 'Product not found.'];
+        }
+
+        $selection = $this->resolveCanonicalSelection($product, $size, $color);
+
+        if (!empty($selection['error'])) {
+            return ['status' => false, 'message' => $selection['error']];
+        }
+
+        $size = $selection['size'];
+        $color = $selection['color'];
 
         $cartQuery = $this->currentCartQuery()
             ->where('product_id', (int) $data['product_id'])
             ->where('product_size', $size);
 
         $cartItem = $this->applyColorScope($cartQuery, $color)->first();
+        $targetQty = $cartItem
+            ? ($replaceQty ? $qty : ((int) $cartItem->product_qty + $qty))
+            : $qty;
+        $availableStock = (int) ($selection['stock'] ?? $this->resolveAvailableStock($product, $size, $color));
+
+        if ($availableStock >= 0 && $targetQty > $availableStock) {
+            return [
+                'status' => false,
+                'message' => $availableStock > 0
+                    ? 'Only ' . $availableStock . ' unit' . ($availableStock === 1 ? '' : 's') . ' available for the selected variant.'
+                    : 'The selected variant is currently out of stock.',
+            ];
+        }
 
         if ($cartItem) {
             if ($replaceQty) {
@@ -418,18 +468,96 @@ class CartService
         });
     }
 
-    public function updateQty($cartItemId, $qty)
+    public function updateItem(int $cartItemId, array $data): array
     {
-        $cartItem = $this->currentCartQuery()->find($cartItemId);
+        $qty = (int) ($data['qty'] ?? 0);
+
+        $cartItem = $this->currentCartQuery()
+            ->with(['product' => function ($query) {
+                $query->with(['productVariants', 'attributes' => function ($attributeQuery) {
+                    $attributeQuery->where('status', 1)->orderBy('sort')->orderBy('id');
+                }]);
+            }])
+            ->find($cartItemId);
 
         if (!$cartItem) {
             return ['status' => false, 'message' => 'Item not found'];
         }
 
-        $cartItem->product_qty = $qty;
-        $cartItem->save();
+        if (!$cartItem->product) {
+            return ['status' => false, 'message' => 'Product not found'];
+        }
 
-        return ['status' => true, 'message' => 'Cart updated'];
+        $requestedSize = array_key_exists('size', $data)
+            ? $this->normalizeSize($data['size'])
+            : $this->normalizeSize($cartItem->product_size ?? 'NA');
+        $requestedColor = array_key_exists('color', $data)
+            ? $this->normalizeColor($data['color'] ?? null)
+            : $this->normalizeColor($cartItem->product_color ?? null);
+
+        $selection = $this->resolveCanonicalSelection($cartItem->product, $requestedSize, $requestedColor);
+
+        if (!empty($selection['error'])) {
+            return [
+                'status' => false,
+                'message' => $selection['error'],
+            ];
+        }
+
+        $requestedSize = $this->normalizeSize($selection['size'] ?? $requestedSize);
+        $requestedColor = $this->normalizeColor($selection['color'] ?? $requestedColor);
+        $availableStock = (int) ($selection['stock'] ?? $this->resolveAvailableStock($cartItem->product, $requestedSize, $requestedColor));
+
+        return DB::transaction(function () use ($cartItemId, $qty, $requestedSize, $requestedColor, $availableStock) {
+            $cartItem = $this->currentCartQuery()
+                ->whereKey($cartItemId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$cartItem) {
+                return ['status' => false, 'message' => 'Item not found'];
+            }
+
+            $existingVariantQuery = $this->currentCartQuery()
+                ->where('product_id', $cartItem->product_id)
+                ->where('product_size', $requestedSize)
+                ->whereKeyNot($cartItem->id)
+                ->lockForUpdate();
+
+            $existingVariantLine = $this->applyColorScope($existingVariantQuery, $requestedColor)->first();
+            $targetQty = $qty + (int) ($existingVariantLine->product_qty ?? 0);
+
+            if ($availableStock >= 0 && $targetQty > $availableStock) {
+                return [
+                    'status' => false,
+                    'message' => $availableStock > 0
+                        ? 'Only ' . $availableStock . ' unit' . ($availableStock === 1 ? '' : 's') . ' available for this variant.'
+                        : 'This variant is currently out of stock.',
+                ];
+            }
+
+            if ($existingVariantLine) {
+                $existingVariantLine->product_qty = $targetQty;
+                $existingVariantLine->save();
+                $cartItem->delete();
+
+                return ['status' => true, 'message' => 'Cart updated'];
+            }
+
+            $cartItem->product_size = $requestedSize;
+            $cartItem->product_color = $requestedColor;
+            $cartItem->product_qty = $qty;
+            $cartItem->save();
+
+            return ['status' => true, 'message' => 'Cart updated'];
+        });
+    }
+
+    public function updateQty($cartItemId, $qty)
+    {
+        return $this->updateItem((int) $cartItemId, [
+            'qty' => (int) $qty,
+        ]);
     }
 
     public function removeItem($cartItemId)
@@ -653,11 +781,118 @@ class CartService
         return Cart::query()->where('session_id', $this->resolveSessionId());
     }
 
+    protected function normalizeSize(mixed $size): string
+    {
+        $normalized = trim((string) $size);
+
+        if ($normalized === '' || strtoupper($normalized) === 'NA') {
+            return 'NA';
+        }
+
+        return $normalized;
+    }
+
     protected function normalizeColor(mixed $color): ?string
     {
         $normalized = trim((string) $color);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    protected function parseProductColors(string $rawColors): array
+    {
+        return $this->uniqueLabels(
+            preg_split('/\s*,\s*/', $rawColors, -1, PREG_SPLIT_NO_EMPTY) ?: []
+        );
+    }
+
+    protected function buildVariantEditorState(Product $product, string $selectedSize, ?string $selectedColor): array
+    {
+        $variantOptions = $this->buildVariantMatrix($product, $selectedSize, $selectedColor);
+        $sizeOptions = array_values(array_filter(
+            $this->uniqueLabels(array_column($variantOptions, 'size')),
+            fn (string $size) => strtoupper($size) !== 'NA'
+        ));
+        $colorOptions = $this->uniqueLabels(array_values(array_filter(
+            array_column($variantOptions, 'color'),
+            fn ($color) => $color !== null && trim((string) $color) !== ''
+        )));
+
+        return [
+            'variant_options' => $variantOptions,
+            'size_options' => $sizeOptions,
+            'color_options' => $colorOptions,
+            'can_edit_size' => count($sizeOptions) > 1,
+            'can_edit_color' => count($colorOptions) > 1,
+            'has_variant_controls' => count($sizeOptions) > 1 || count($colorOptions) > 1,
+        ];
+    }
+
+    protected function buildVariantMatrix(Product $product, string $selectedSize, ?string $selectedColor): array
+    {
+        $product->loadMissing(['productVariants', 'attributes']);
+
+        $options = [];
+        $seen = [];
+
+        if ($product->productVariants->isNotEmpty()) {
+            foreach ($product->productVariants as $variant) {
+                $size = $this->normalizeSize($variant->size);
+                $color = $this->normalizeColor($variant->color);
+                $key = strtolower($size . '|' . ($color ?? ''));
+
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $options[] = [
+                    'size' => $size,
+                    'color' => $color,
+                    'stock' => max(0, (int) $variant->stock),
+                ];
+            }
+        } else {
+            $sizes = $this->uniqueLabels($product->attributes->pluck('size')->all());
+            if (empty($sizes)) {
+                $sizes = [$selectedSize];
+            }
+
+            $colors = $this->parseProductColors((string) ($product->product_color ?? ''));
+            if (empty($colors)) {
+                $colors = [$selectedColor];
+            }
+
+            foreach ($sizes as $sizeOption) {
+                $normalizedSize = $this->normalizeSize($sizeOption);
+                foreach ($colors as $colorOption) {
+                    $normalizedColor = $this->normalizeColor($colorOption);
+                    $key = strtolower($normalizedSize . '|' . ($normalizedColor ?? ''));
+
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+
+                    $seen[$key] = true;
+                    $options[] = [
+                        'size' => $normalizedSize,
+                        'color' => $normalizedColor,
+                        'stock' => max(0, (int) $this->resolveAvailableStock($product, $normalizedSize, $normalizedColor)),
+                    ];
+                }
+            }
+        }
+
+        $selectedKey = strtolower($selectedSize . '|' . ($selectedColor ?? ''));
+        if (!isset($seen[$selectedKey])) {
+            $options[] = [
+                'size' => $selectedSize,
+                'color' => $selectedColor,
+                'stock' => max(0, (int) $this->resolveAvailableStock($product, $selectedSize, $selectedColor)),
+            ];
+        }
+
+        return $options;
     }
 
     protected function applyColorScope($query, ?string $color)
@@ -672,5 +907,127 @@ class CartService
 
             $colorQuery->where('product_color', $color);
         });
+    }
+
+    protected function resolveCanonicalSelection(Product $product, ?string $size, ?string $color): array
+    {
+        $product->loadMissing('productVariants');
+
+        if ($product->productVariants->isEmpty()) {
+            return [
+                'size' => filled($size) ? (string) $size : 'NA',
+                'color' => $this->normalizeColor($color),
+                'stock' => $this->resolveAvailableStock($product, filled($size) ? (string) $size : 'NA', $this->normalizeColor($color)),
+            ];
+        }
+
+        $normalizedSize = trim((string) $size);
+        if (strtoupper($normalizedSize) === 'NA') {
+            $normalizedSize = '';
+        }
+
+        $normalizedColor = $this->normalizeColor($color);
+        $matchingVariants = $product->productVariants;
+
+        if ($normalizedColor !== null) {
+            $matchingVariants = $matchingVariants->filter(function ($variant) use ($normalizedColor) {
+                return strtolower(trim((string) $variant->color)) === strtolower($normalizedColor);
+            })->values();
+        }
+
+        if ($normalizedSize !== '') {
+            $matchingVariants = $matchingVariants->filter(function ($variant) use ($normalizedSize) {
+                return strtolower(trim((string) $variant->size)) === strtolower($normalizedSize);
+            })->values();
+        }
+
+        if ($matchingVariants->isEmpty()) {
+            return [
+                'error' => ($normalizedColor !== null || $normalizedSize !== '')
+                    ? 'The selected size and color combination is unavailable.'
+                    : 'Choose a valid product variant before adding this item to the cart.',
+            ];
+        }
+
+        if ($matchingVariants->count() > 1) {
+            $matchingColors = $this->uniqueLabels($matchingVariants->pluck('color')->all());
+            $matchingSizes = $this->uniqueLabels($matchingVariants->pluck('size')->all());
+
+            if ($normalizedColor === null && count($matchingColors) > 1) {
+                return ['error' => 'Select a color before adding this item to the cart.'];
+            }
+
+            if ($normalizedSize === '' && count($matchingSizes) > 1) {
+                return ['error' => 'Select a size before adding this item to the cart.'];
+            }
+
+            return ['error' => 'Choose a specific size and color combination before adding this item to the cart.'];
+        }
+
+        $variant = $matchingVariants->first();
+
+        return [
+            'size' => (string) $variant->size,
+            'color' => $this->normalizeColor($variant->color),
+            'stock' => max(0, (int) $variant->stock),
+        ];
+    }
+
+    protected function resolveAvailableStock(Product $product, string $size, ?string $color): ?int
+    {
+        $product->loadMissing('productVariants');
+
+        if ($product->productVariants->isNotEmpty()) {
+            $matchingVariant = $product->productVariants->first(function ($variant) use ($size, $color) {
+                $sizeMatches = strtolower(trim((string) $variant->size)) === strtolower(trim((string) $size));
+
+                if (!$sizeMatches) {
+                    return false;
+                }
+
+                if ($color === null) {
+                    return true;
+                }
+
+                return strtolower(trim((string) $variant->color)) === strtolower(trim((string) $color));
+            });
+
+            return $matchingVariant ? max(0, (int) $matchingVariant->stock) : 0;
+        }
+
+        if ($size !== '' && strtoupper($size) !== 'NA') {
+            $attributePrice = Product::getAttributePrice($product->id, $size, $color);
+
+            if (($attributePrice['status'] ?? false) === true) {
+                return max(0, (int) ($attributePrice['stock'] ?? 0));
+            }
+        }
+
+        return max(0, (int) ($product->stock ?? 0));
+    }
+
+    protected function uniqueLabels(array $values): array
+    {
+        $labels = [];
+        $seen = [];
+
+        foreach ($values as $value) {
+            $label = trim((string) $value);
+
+            if ($label === '') {
+                continue;
+            }
+
+            $normalized = strtolower($label);
+
+            if (isset($seen[$normalized])) {
+                continue;
+            }
+
+            $seen[$normalized] = true;
+            $labels[] = $label;
+        }
+
+        return $labels;
     }
 }

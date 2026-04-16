@@ -37,6 +37,16 @@ class OrderItem extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function getPriceAttribute(): float
+    {
+        return (float) ($this->attributes['unit_price'] ?? 0);
+    }
+
+    public function getSubtotalAttribute(): float
+    {
+        return (float) ($this->attributes['line_total'] ?? 0);
     }
 }

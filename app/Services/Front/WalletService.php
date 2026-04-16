@@ -36,6 +36,21 @@ class WalletService
             ->get();
     }
 
+    public function requestTopUpForUser(int $userId, float $amount, ?string $note = null): Wallet
+    {
+        $amount = round(max($amount, 0), 2);
+
+        return Wallet::query()->create([
+            'user_id' => $userId,
+            'action' => Wallet::ACTION_CREDIT,
+            'amount' => $amount,
+            'signed_amount' => $amount,
+            'description' => $this->buildTopUpRequestDescription($amount, $note),
+            'expiry_date' => null,
+            'status' => false,
+        ]);
+    }
+
     public function normalizeRequestedAmount(float $requestedAmount, float $availableBalance, float $payableAmount): array
     {
         $requestedAmount = round(max($requestedAmount, 0), 2);
@@ -55,5 +70,16 @@ class WalletService
     public function formatAmount(float $amount): string
     {
         return 'KSH.' . number_format($amount, 2);
+    }
+
+    private function buildTopUpRequestDescription(float $amount, ?string $note = null): string
+    {
+        $description = Wallet::TOP_UP_REQUEST_PREFIX . ' for ' . $this->formatAmount($amount) . '. Pending admin approval.';
+
+        if (blank($note)) {
+            return $description;
+        }
+
+        return $description . ' Note: ' . trim($note);
     }
 }

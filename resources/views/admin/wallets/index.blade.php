@@ -54,6 +54,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Request Filter</label>
+                            <div class="form-check pt-2">
+                                <input class="form-check-input" type="checkbox" value="1" id="walletPendingRequestsOnly" name="pending_requests" {{ !empty($pendingRequestsOnly) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="walletPendingRequestsOnly">
+                                    Show only pending wallet top-up requests
+                                </label>
+                            </div>
+                        </div>
                         <div class="col-md-auto">
                             <button type="submit" class="btn btn-outline-primary">Apply Filter</button>
                         </div>
@@ -61,6 +70,21 @@
                             <a href="{{ route('wallets.index') }}" class="btn btn-outline-secondary">Reset</a>
                         </div>
                     </form>
+
+                    @if($pendingRequestCount > 0)
+                        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <strong>{{ $pendingRequestCount }}</strong>
+                                pending wallet top-up request{{ $pendingRequestCount === 1 ? '' : 's' }}
+                                {{ $selectedUser ? 'for this user' : 'currently awaiting admin action' }}.
+                            </div>
+                            @if(empty($pendingRequestsOnly))
+                                <a href="{{ route('wallets.index', array_filter(['user_id' => $selectedUserId, 'pending_requests' => 1])) }}" class="btn btn-sm btn-outline-dark">
+                                    View Pending Requests
+                                </a>
+                            @endif
+                        </div>
+                    @endif
 
                     @if($selectedUser)
                         <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -97,7 +121,7 @@
                             </thead>
                             <tbody>
                                 @foreach($wallets as $wallet)
-                                    <tr data-wallet-id="{{ $wallet->id }}" data-user-id="{{ $wallet->user_id }}">
+                                    <tr data-wallet-id="{{ $wallet->id }}" data-user-id="{{ $wallet->user_id }}" class="{{ $wallet->is_pending_top_up_request ? 'table-warning' : '' }}">
                                         <td>{{ $wallet->id }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ $wallet->user->name ?: 'User #' . $wallet->user_id }}</div>
@@ -122,6 +146,11 @@
                                         </td>
                                         <td>
                                             {{ \Illuminate\Support\Str::limit($wallet->description ?: 'Manual adjustment', 60) }}
+                                            @if($wallet->is_pending_top_up_request)
+                                                <div class="mt-1">
+                                                    <span class="badge text-bg-warning">Pending Top-Up Request</span>
+                                                </div>
+                                            @endif
                                         </td>
                                         <td data-order="{{ optional($wallet->expiry_date)->timestamp ?? 32503680000 }}">
                                             @if($wallet->expiry_date)
@@ -137,6 +166,11 @@
                                             @if($wallet->is_expired)
                                                 <div class="mt-1">
                                                     <span class="badge text-bg-warning wallet-expired-badge">Expired</span>
+                                                </div>
+                                            @endif
+                                            @if($wallet->is_pending_top_up_request)
+                                                <div class="mt-1">
+                                                    <span class="badge text-bg-warning">Awaiting Approval</span>
                                                 </div>
                                             @endif
                                         </td>

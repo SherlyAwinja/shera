@@ -172,7 +172,7 @@ class CartWalletFlowTest extends TestCase
         ]);
     }
 
-    public function test_cart_page_shows_wallet_balance_and_apply_controls_for_authenticated_users(): void
+    public function test_cart_page_points_wallet_usage_to_checkout_for_authenticated_users(): void
     {
         $user = User::factory()->create([
             'status' => 1,
@@ -208,11 +208,10 @@ class CartWalletFlowTest extends TestCase
             ->withSession(['session_id' => 'wallet-page-session'])
             ->get(route('cart.index'))
             ->assertOk()
-            ->assertSeeText('Wallet Credit')
-            ->assertSeeText('Balance: KSH.75.00')
-            ->assertSeeText('Available to apply now:')
-            ->assertSeeText('Use Full Available Wallet')
-            ->assertSeeText('Validate Wallet & Checkout Plan', false);
+            ->assertSeeText('Proceed to Checkout')
+            ->assertSeeText('Payment method and wallet credit now live in checkout beside delivery details.')
+            ->assertDontSeeText('Wallet Credit')
+            ->assertDontSeeText('Use Full Available Wallet');
     }
 
     public function test_account_page_displays_live_wallet_balance_and_recent_entries(): void

@@ -111,6 +111,35 @@
     .checkout-summary-shell{position:sticky;top:1.5rem;overflow:hidden}
     .checkout-summary-shell.is-loading{pointer-events:none;opacity:.72}
     .checkout-summary-shell.is-loading::after{content:"Updating totals...";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,249,240,.76);color:var(--front-luxe-accent);font-weight:700;z-index:2}
+    .checkout-payment-shell{margin:1rem 0;padding:1.1rem;border-radius:24px;border:1px solid rgba(139,28,45,.1);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,244,236,.92))}
+    .checkout-payment-head{margin-bottom:1rem}
+    .checkout-payment-grid{display:grid;gap:.8rem}
+    .checkout-payment-option{position:relative}
+    .checkout-payment-option--wallet{display:grid;gap:.8rem}
+    .checkout-payment-input{position:absolute;opacity:0;pointer-events:none}
+    .checkout-payment-label{display:flex;align-items:flex-start;gap:.85rem;padding:1rem;border-radius:20px;border:1px solid rgba(18,50,59,.1);background:#fff;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .checkout-payment-label:hover{transform:translateY(-1px);box-shadow:0 14px 26px rgba(18,50,59,.08)}
+    .checkout-payment-input:checked + .checkout-payment-label{border-color:rgba(15,106,102,.34);box-shadow:0 18px 30px rgba(15,106,102,.12);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(239,247,246,.96))}
+    .checkout-payment-input:focus + .checkout-payment-label{border-color:rgba(15,106,102,.45);box-shadow:0 0 0 .2rem rgba(15,106,102,.12)}
+    .checkout-payment-label.is-disabled{opacity:.62;cursor:not-allowed;background:rgba(248,250,252,.88);box-shadow:none;transform:none}
+    .checkout-payment-icon{width:48px;height:48px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;background:rgba(15,106,102,.1);color:var(--front-luxe-accent);font-size:1rem;flex-shrink:0}
+    .checkout-payment-copy{flex:1;display:grid;gap:.3rem}
+    .checkout-payment-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem}
+    .checkout-payment-name{font-size:.98rem;font-weight:700;color:var(--front-luxe-text)}
+    .checkout-payment-chip{display:inline-flex;align-items:center;padding:.32rem .62rem;border-radius:999px;background:rgba(18,50,59,.06);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#425466}
+    .checkout-payment-description,.checkout-payment-hint{font-size:.84rem;line-height:1.6;color:var(--front-luxe-muted)}
+    .checkout-payment-hint{color:var(--front-luxe-accent)}
+    .checkout-wallet-panel{padding:1rem 1rem 1.05rem;border-radius:20px;border:1px dashed rgba(15,106,102,.22);background:rgba(239,247,246,.52)}
+    .checkout-wallet-panel.is-disabled{background:rgba(248,250,252,.88);border-color:rgba(148,163,184,.28)}
+    .checkout-wallet-panel-head{display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;margin-bottom:.9rem}
+    .checkout-wallet-balance{display:inline-flex;align-items:center;padding:.38rem .72rem;border-radius:999px;background:rgba(18,50,59,.06);font-size:.76rem;font-weight:700;color:#425466}
+    .checkout-wallet-copy{font-size:.84rem;line-height:1.6;color:var(--front-luxe-muted)}
+    .checkout-wallet-copy strong{color:var(--front-luxe-text)}
+    .checkout-wallet-message{margin-bottom:.85rem}
+    .checkout-wallet-form .input-group>.form-control{min-height:46px;border-radius:14px 0 0 14px}
+    .checkout-wallet-form .input-group>.input-group-append>.btn{border-radius:0 14px 14px 0;font-weight:700}
+    .checkout-wallet-actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.85rem}
+    .checkout-wallet-action{min-height:42px;border-radius:999px;font-size:.8rem;font-weight:700;padding:.55rem 1rem}
     .checkout-summary-item{align-items:flex-start}
     .checkout-summary-thumb{width:74px;height:92px;object-fit:cover;border-radius:18px;border:1px solid rgba(139,28,45,.12);background:#fff}
     .checkout-summary-item-copy{flex:1}
@@ -208,7 +237,7 @@
         </div>
     </div>
 
-    <div class="container-fluid front-page-shell checkout-page-shell" data-checkout-root data-summary-url="{{ route('user.checkout.summary', [], false) }}" data-selected-address-id="{{ $selectedAddressId }}" data-address-count="{{ $addresses->count() }}">
+    <div class="container-fluid front-page-shell checkout-page-shell" data-checkout-root data-summary-url="{{ route('user.checkout.summary', [], false) }}" data-wallet-apply-url="{{ route('user.checkout.wallet.apply', [], false) }}" data-wallet-remove-url="{{ route('user.checkout.wallet.remove', [], false) }}" data-selected-address-id="{{ $selectedAddressId }}" data-address-count="{{ $addresses->count() }}">
         <div class="row px-xl-5">
             <div class="col-lg-7 mb-5">
                 <div class="checkout-card">
